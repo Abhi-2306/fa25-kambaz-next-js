@@ -2,22 +2,22 @@ export default function CourseStatus() {
     return (
         <div id="wd-course-status">
             <h2>Course Status</h2>
-            <button>Unpublish</button> <button>Publish</button>
+            <button id="wd-un-publish">Unpublish</button> <button id="wd-publish">Publish</button>
             <br />
             <br />
-            <button>Import Existing Content</button>
+            <button id="wd-import-existing">Import Existing Content</button>
             <br />
-            <button>Import from Commons</button>
+            <button id="wd-import-from-commons">Import from Commons</button>
             <br />
-            <button>Choose Home Page</button>
+            <button id="wd-choose-home-page">Choose Home Page</button>
             <br />
-            <button>View Course Stream</button>
+            <button id="wd-view-course-stream">View Course Stream</button>
             <br />
-            <button>New Announcement</button>
+            <button id="wd-new-announcement">New Announcement</button>
             <br />
-            <button>New Analytics</button>
+            <button id="wd-new-analytics">New Analytics</button>
             <br />
-            <button>View Course Notifications</button>
+            <button id="wd-view-course-notification">View Course Notifications</button>
         </div>
     );
 }

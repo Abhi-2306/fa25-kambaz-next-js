@@ -1,13 +1,12 @@
 export default function Modules() {
     return (
         <div>
-            <button suppressHydrationWarning={true}>Collapse All</button>&nbsp;&nbsp;
-            <button suppressHydrationWarning={true}>View Progress</button>&nbsp;&nbsp;
+            <button id="wd-collapse-all" suppressHydrationWarning={true}>Collapse All</button>&nbsp;&nbsp;
+            <button id="wd-view-progress" suppressHydrationWarning={true}>View Progress</button>&nbsp;&nbsp;
             <select suppressHydrationWarning={true} id="wd-select-one-view-progress" defaultValue="PUBLISH">
                 <option value="PUBLISH">Publish All</option>
             </select>&nbsp;&nbsp;
-            <button suppressHydrationWarning={true}>View Progress</button>&nbsp;&nbsp;
-            <button > + Module</button>
+            <button id="wd-module" > + Module</button>
             <ul id="wd-modules">
                 <li className="wd-module">
                     <div className="wd-title">Week 1, Lecture 1 - Course Introduction, Syllabus, Agenda</div>
