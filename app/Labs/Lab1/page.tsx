@@ -17,7 +17,7 @@ export default function Lab1() {
             <Link href="/">Back to Kambaz</Link>
             <h2>Source code repositories</h2>
             <ul>
-                <li><a href="https://github.com">Github Repository</a></li>
+                <li><a href="https://github.com/Abhi-2306/fa25-kambaz-next-js">Github Repository - fa25-kambaz-next-js</a></li>
             </ul>
             <h2>Lab 1</h2>
             <h3>HTML Examples</h3>
