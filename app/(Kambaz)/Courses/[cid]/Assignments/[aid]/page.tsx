@@ -26,6 +26,9 @@ export default function AssignmentEditor() {
                     <td>
                             <select suppressHydrationWarning={true} id="wd-group" defaultValue='ASSIGNMENTS'>
                             <option value="ASSIGNMENTS">ASSIGNMENTS</option>
+                            <option value="QUIZZES">QUIZZES</option>
+                            <option value="EXAMS">EXAMS</option>
+                            <option value="PROJECTS">PROJECTS</option>
                         </select>
                     </td>
                 </tr>
@@ -36,6 +39,8 @@ export default function AssignmentEditor() {
                     <td>
                             <select suppressHydrationWarning={true} id="wd-display-grade-as" defaultValue='PERCENTAGE'>
                             <option value="PERCENTAGE">Percentage</option>
+                            <option value="POINTS">Points</option>
+                            <option value="COMPLETE/INCOMPLETE">Complete/Incomplete</option>
                         </select>
                     </td>
                 </tr>
@@ -46,6 +51,8 @@ export default function AssignmentEditor() {
                     <td>
                             <select suppressHydrationWarning={true} id="wd-submission-type" defaultValue='ONLINE'>
                             <option value="ONLINE">Online</option>
+                            <option value="ON-PAPER">On Paper</option>
+                            <option value="EXTERNAL-TOOL">External Tool</option>
                             </select>
                             <br /><br />
 
