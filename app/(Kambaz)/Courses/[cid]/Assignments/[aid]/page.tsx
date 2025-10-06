@@ -1,112 +1,226 @@
 "use client"
+import { Form, Button, Card, Row, Col } from 'react-bootstrap';
+import { FaCalendarAlt } from 'react-icons/fa';
+
 export default function AssignmentEditor() {
     return (
-        <div id="wd-assignments-editor">
-            <label htmlFor="wd-name"><b>Assignment Name</b></label>
-            <br />
-            <br />
-            <input suppressHydrationWarning={true} id="wd-name" defaultValue="A1 - ENV + HTML" /><br /><br />
-            <textarea suppressHydrationWarning={true} id="wd-description" defaultValue={"The assignment is available online Submit a link to the landing page of"}/>
-            <br />
-            <br />
-            <table>
-                <tbody>
-                <tr>
-                    <td align="right" valign="top">
-                        <label htmlFor="wd-points">Points</label>
-                    </td>
-                    <td>
-                            <input suppressHydrationWarning={true} type = "number" id="wd-points" defaultValue={100} />
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" valign="top">
-                        <label htmlFor="wd-group">Assignment Group</label>
-                    </td>
-                    <td>
-                            <select suppressHydrationWarning={true} id="wd-group" defaultValue='ASSIGNMENTS'>
+        <div id="wd-assignments-editor" className="container mt-4">
+            <Form>
+                <Form.Group className="mb-4">
+                    <Form.Label htmlFor="wd-name">Assignment Name</Form.Label>
+                    <Form.Control
+                        type="text"
+                        id="wd-name"
+                        defaultValue="A1"
+                        suppressHydrationWarning={true}
+                    />
+                </Form.Group>
+                <Form.Group className="mb-4">
+                    <Form.Control
+                        as="textarea"
+                        rows={12}
+                        id="wd-description"
+                        defaultValue={`The assignment is available online
+
+Submit a link to the landing page of your Web application running on Netlify.
+
+The landing page should include the following:
+
+• Your full name and section
+• Links to each of the lab assignments
+• Link to the Kanbaz application
+• Links to all relevant source code repositories
+
+The Kanbaz application should include a link to navigate back to the landing page.`}
+                        suppressHydrationWarning={true}
+                        style={{ resize: 'none' }}
+                    />
+                </Form.Group>
+
+                <Row className="mb-3">
+                    <Col md={3} className="text-end">
+                        <Form.Label htmlFor="wd-points">Points</Form.Label>
+                    </Col>
+                    <Col md={9}>
+                        <Form.Control
+                            type="number"
+                            id="wd-points"
+                            defaultValue={100}
+                            suppressHydrationWarning={true}
+                        />
+                    </Col>
+                </Row>
+
+                <Row className="mb-3">
+                    <Col md={3} className="text-end">
+                        <Form.Label htmlFor="wd-group">Assignment Group</Form.Label>
+                    </Col>
+                    <Col md={9}>
+                        <Form.Select
+                            id="wd-group"
+                            defaultValue="ASSIGNMENTS"
+                            suppressHydrationWarning={true}
+                        >
                             <option value="ASSIGNMENTS">ASSIGNMENTS</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" valign="top">
-                        <label htmlFor="wd-display-grade-as">Display Grade as</label>
-                    </td>
-                    <td>
-                            <select suppressHydrationWarning={true} id="wd-display-grade-as" defaultValue='PERCENTAGE'>
-                            <option value="PERCENTAGE">Percentage</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" valign="top">
-                        <label htmlFor="wd-submission-type">Submission Type</label>
-                    </td>
-                    <td>
-                            <select suppressHydrationWarning={true} id="wd-submission-type" defaultValue='ONLINE'>
-                            <option value="ONLINE">Online</option>
-                            </select>
-                            <br /><br />
+                            <option value="QUIZZES">QUIZZES</option>
+                            <option value="EXAMS">EXAMS</option>
+                            <option value="PROJECTS">PROJECTS</option>
+                        </Form.Select>
+                    </Col>
+                </Row>
 
-                        <label>Online Entry Options</label><br />
-                        <input suppressHydrationWarning={true} type="checkbox" id="wd-text-entry" />
-                        <label htmlFor="wd-text-entry">Text Entry</label><br />
+                <Row className="mb-3">
+                    <Col md={3} className="text-end">
+                        <Form.Label htmlFor="wd-display-grade-as">Display Grade as</Form.Label>
+                    </Col>
+                    <Col md={9}>
+                        <Form.Select
+                            id="wd-display-grade-as"
+                            defaultValue="Percentage"
+                            suppressHydrationWarning={true}
+                        >
+                            <option value="Percentage">Percentage</option>
+                            <option value="Points">Points</option>
+                            <option value="Complete/Incomplete">Complete/Incomplete</option>
+                        </Form.Select>
+                    </Col>
+                </Row>
 
-                        <input suppressHydrationWarning={true} type="checkbox" id="wd-website-url" />
-                        <label htmlFor="wd-website-url">Website URL</label><br />
+                <Row className="mb-3">
+                    <Col md={3} className="text-end">
+                        <Form.Label htmlFor="wd-submission-type">Submission Type</Form.Label>
+                    </Col>
+                    <Col md={9}>
+                        <Card className="p-3">
+                            <Form.Select
+                                id="wd-submission-type"
+                                defaultValue="Online"
+                                className="mb-3"
+                                suppressHydrationWarning={true}
+                            >
+                                <option value="Online">Online</option>
+                                <option value="On Paper">On Paper</option>
+                                <option value="External Tool">External Tool</option>
+                            </Form.Select>
 
-                        <input suppressHydrationWarning={true} type="checkbox" id="wd-media-recordings" />
-                        <label htmlFor="wd-media-recordings">Media Recordings</label><br />
+                            <div>
+                                <Form.Label className="fw-bold">Online Entry Options</Form.Label>
+                                <Form.Check
+                                    type="checkbox"
+                                    id="wd-text-entry"
+                                    label="Text Entry"
+                                    suppressHydrationWarning={true}
+                                />
+                                <Form.Check
+                                    type="checkbox"
+                                    id="wd-website-url"
+                                    label="Website URL"
+                                    defaultChecked
+                                    suppressHydrationWarning={true}
+                                />
+                                <Form.Check
+                                    type="checkbox"
+                                    id="wd-media-recordings"
+                                    label="Media Recordings"
+                                    suppressHydrationWarning={true}
+                                />
+                                <Form.Check
+                                    type="checkbox"
+                                    id="wd-student-annotation"
+                                    label="Student Annotation"
+                                    suppressHydrationWarning={true}
+                                />
+                                <Form.Check
+                                    type="checkbox"
+                                    id="wd-file-upload"
+                                    label="File Uploads"
+                                    suppressHydrationWarning={true}
+                                />
+                            </div>
+                        </Card>
+                    </Col>
+                </Row>
 
-                        <input suppressHydrationWarning={true} type="checkbox" id="wd-student-annotation" />
-                        <label htmlFor="wd-student-annotation">Student Annotation</label><br />
+                <Row className="mb-3">
+                    <Col md={3} className="text-end">
+                        <Form.Label>Assign</Form.Label>
+                    </Col>
+                    <Col md={9}>
+                        <Card className="p-3">
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="wd-assign-to" className="fw-bold">Assign to</Form.Label>
+                                <div className="form-control bg-light">
+                                    <span className="badge bg-secondary text-dark me-1">
+                                        Everyone
+                                        <button type="button" className="btn-close btn-sm ms-2" aria-label="Remove"></button>
+                                    </span>
+                                </div>
+                            </Form.Group>
 
-                        <input suppressHydrationWarning={true} type="checkbox" id="wd-file-upload" />
-                        <label htmlFor="wd-file-upload">File Uploads</label><br />
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" valign="top">
-                        <label htmlFor="wd-assign-to">Assign</label>
-                    </td>
-                    <td>
-                        <label htmlFor="wd-assign-to">Assign to</label><br />
-                            <input suppressHydrationWarning={true} id="wd-assign-to" defaultValue={"Everyone"} />
-                            <br /><br />
-                        <label htmlFor="wd-due-date">Due</label><br />
-                            <input suppressHydrationWarning={true} type="date" id="wd-due-date" defaultValue={"2024-04-13"} />
-                            <br /><br />
-                        <table>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <label htmlFor="wd-available-from">Available from</label><br />
-                                            <input suppressHydrationWarning={true} type="date" id="wd-available-from" defaultValue="2024-05-06"/>
-                                    </td>
-                                    <td>
-                                        <label htmlFor="wd-available-until">Until</label><br />
-                                            <input suppressHydrationWarning={true} type="date" id="wd-available-until" defaultValue="2024-05-20"/>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </td>
-                </tr>
-                <tr>
-                        <td colSpan={2}>
-                            <hr />
-                        </td>
-                </tr>
-                <tr>
-                    <td colSpan={2} align="right">
-                            <button suppressHydrationWarning={true} id="wd-cancel">Cancel</button>
-                            <button suppressHydrationWarning={true} id="wd-save">Save</button>
-                    </td>
-                    </tr>
-                </tbody>
-            </table>
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="wd-due-date" className="fw-bold">Due</Form.Label>
+                                <div className="input-group">
+                                    <Form.Control
+                                        type="text"
+                                        id="wd-due-date"
+                                        defaultValue="May 13, 2024, 11:59 PM"
+                                        suppressHydrationWarning={true}
+                                    />
+                                    <button className="btn btn-outline-secondary" type="button">
+                                        <FaCalendarAlt />
+                                    </button>
+                                </div>
+                            </Form.Group>
+
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label htmlFor="wd-available-from" className="fw-bold">Available from</Form.Label>
+                                        <div className="input-group">
+                                            <Form.Control
+                                                type="text"
+                                                id="wd-available-from"
+                                                defaultValue="May 6, 2024, 12:00 AM"
+                                                suppressHydrationWarning={true}
+                                            />
+                                            <button className="btn btn-outline-secondary" type="button">
+                                                <FaCalendarAlt />
+                                            </button>
+                                        </div>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label htmlFor="wd-available-until" className="fw-bold">Until</Form.Label>
+                                        <div className="input-group">
+                                            <Form.Control
+                                                type="text"
+                                                id="wd-available-until"
+                                                defaultValue="May 20, 2024, 11:59 PM"
+                                                suppressHydrationWarning={true}
+                                            />
+                                            <button className="btn btn-outline-secondary" type="button">
+                                                <FaCalendarAlt />
+                                            </button>
+                                        </div>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                        </Card>
+                    </Col>
+                </Row>
+
+                <hr className="my-4" />
+
+                <div className="d-flex justify-content-end">
+                    <Button variant="secondary" className="me-2" id="wd-cancel">
+                        Cancel
+                    </Button>
+                    <Button variant="danger" id="wd-save">
+                        Save
+                    </Button>
+                </div>
+            </Form>
         </div>
     );
 }
-
