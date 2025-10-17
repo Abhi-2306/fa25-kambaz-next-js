@@ -65,9 +65,38 @@ The Kanbaz application should include a link to navigate back to the landing pag
                             <option value="QUIZZES">QUIZZES</option>
                             <option value="EXAMS">EXAMS</option>
                             <option value="PROJECTS">PROJECTS</option>
+<<<<<<< HEAD
                         </Form.Select>
                     </Col>
                 </Row>
+=======
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right" valign="top">
+                        <label htmlFor="wd-display-grade-as">Display Grade as</label>
+                    </td>
+                    <td>
+                            <select suppressHydrationWarning={true} id="wd-display-grade-as" defaultValue='PERCENTAGE'>
+                            <option value="PERCENTAGE">Percentage</option>
+                            <option value="POINTS">Points</option>
+                            <option value="COMPLETE/INCOMPLETE">Complete/Incomplete</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right" valign="top">
+                        <label htmlFor="wd-submission-type">Submission Type</label>
+                    </td>
+                    <td>
+                            <select suppressHydrationWarning={true} id="wd-submission-type" defaultValue='ONLINE'>
+                            <option value="ONLINE">Online</option>
+                            <option value="ON-PAPER">On Paper</option>
+                            <option value="EXTERNAL-TOOL">External Tool</option>
+                            </select>
+                            <br /><br />
+>>>>>>> main
 
                 <Row className="mb-3">
                     <Col md={3} className="text-end">
