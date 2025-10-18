@@ -1,8 +1,17 @@
 "use client"
 import { Form, Button, Card, Row, Col } from 'react-bootstrap';
 import { FaCalendarAlt } from 'react-icons/fa';
-
+import { useParams } from 'next/navigation';
+import * as db from "../../../../Database";
+import Link from 'next/link';
 export default function AssignmentEditor() {
+    const { cid, aid } = useParams();
+    const assignments = db.assignments;
+
+    const assignment = assignments.find((a: any) => a._id === aid);
+    if (!assignment) {
+        return <div>Assignment not found</div>;
+    }
     return (
         <div id="wd-assignments-editor" className="container mt-4">
             <Form>
@@ -11,7 +20,7 @@ export default function AssignmentEditor() {
                     <Form.Control
                         type="text"
                         id="wd-name"
-                        defaultValue="A1"
+                        defaultValue={assignment.title}
                         suppressHydrationWarning={true}
                     />
                 </Form.Group>
@@ -20,18 +29,7 @@ export default function AssignmentEditor() {
                         as="textarea"
                         rows={12}
                         id="wd-description"
-                        defaultValue={`The assignment is available online
-
-Submit a link to the landing page of your Web application running on Netlify.
-
-The landing page should include the following:
-
-• Your full name and section
-• Links to each of the lab assignments
-• Link to the Kanbaz application
-• Links to all relevant source code repositories
-
-The Kanbaz application should include a link to navigate back to the landing page.`}
+                        defaultValue={assignment.description || ""}
                         suppressHydrationWarning={true}
                         style={{ resize: 'none' }}
                     />
@@ -45,7 +43,7 @@ The Kanbaz application should include a link to navigate back to the landing pag
                         <Form.Control
                             type="number"
                             id="wd-points"
-                            defaultValue={100}
+                            defaultValue={assignment.points}
                             suppressHydrationWarning={true}
                         />
                     </Col>
@@ -65,39 +63,9 @@ The Kanbaz application should include a link to navigate back to the landing pag
                             <option value="QUIZZES">QUIZZES</option>
                             <option value="EXAMS">EXAMS</option>
                             <option value="PROJECTS">PROJECTS</option>
-<<<<<<< HEAD
                         </Form.Select>
                     </Col>
                 </Row>
-=======
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" valign="top">
-                        <label htmlFor="wd-display-grade-as">Display Grade as</label>
-                    </td>
-                    <td>
-                            <select suppressHydrationWarning={true} id="wd-display-grade-as" defaultValue='PERCENTAGE'>
-                            <option value="PERCENTAGE">Percentage</option>
-                            <option value="POINTS">Points</option>
-                            <option value="COMPLETE/INCOMPLETE">Complete/Incomplete</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" valign="top">
-                        <label htmlFor="wd-submission-type">Submission Type</label>
-                    </td>
-                    <td>
-                            <select suppressHydrationWarning={true} id="wd-submission-type" defaultValue='ONLINE'>
-                            <option value="ONLINE">Online</option>
-                            <option value="ON-PAPER">On Paper</option>
-                            <option value="EXTERNAL-TOOL">External Tool</option>
-                            </select>
-                            <br /><br />
->>>>>>> main
-
                 <Row className="mb-3">
                     <Col md={3} className="text-end">
                         <Form.Label htmlFor="wd-display-grade-as">Display Grade as</Form.Label>
@@ -192,7 +160,7 @@ The Kanbaz application should include a link to navigate back to the landing pag
                                     <Form.Control
                                         type="text"
                                         id="wd-due-date"
-                                        defaultValue="May 13, 2024, 11:59 PM"
+                                        defaultValue={assignment.dueDate}
                                         suppressHydrationWarning={true}
                                     />
                                     <button className="btn btn-outline-secondary" type="button">
@@ -209,7 +177,7 @@ The Kanbaz application should include a link to navigate back to the landing pag
                                             <Form.Control
                                                 type="text"
                                                 id="wd-available-from"
-                                                defaultValue="May 6, 2024, 12:00 AM"
+                                                defaultValue={assignment.availableDate}
                                                 suppressHydrationWarning={true}
                                             />
                                             <button className="btn btn-outline-secondary" type="button">
@@ -225,7 +193,7 @@ The Kanbaz application should include a link to navigate back to the landing pag
                                             <Form.Control
                                                 type="text"
                                                 id="wd-available-until"
-                                                defaultValue="May 20, 2024, 11:59 PM"
+                                                defaultValue={assignment.dueDate || ""}
                                                 suppressHydrationWarning={true}
                                             />
                                             <button className="btn btn-outline-secondary" type="button">
@@ -242,12 +210,12 @@ The Kanbaz application should include a link to navigate back to the landing pag
                 <hr className="my-4" />
 
                 <div className="d-flex justify-content-end">
-                    <Button variant="secondary" className="me-2" id="wd-cancel">
+                    <Link href={`/Courses/${cid}/Assignments`} className="btn btn-secondary me-2" id="wd-cancel">
                         Cancel
-                    </Button>
-                    <Button variant="danger" id="wd-save">
+                    </Link>
+                    <Link href={`/Courses/${cid}/Assignments`} className="btn btn-danger" id="wd-save">
                         Save
-                    </Button>
+                    </Link>
                 </div>
             </Form>
         </div>

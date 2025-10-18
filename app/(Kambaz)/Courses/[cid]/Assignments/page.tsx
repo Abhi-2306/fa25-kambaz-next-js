@@ -5,8 +5,13 @@ import { FaCheckCircle, FaSearch, FaPlus, FaCaretDown } from 'react-icons/fa';
 import { IoEllipsisVertical } from 'react-icons/io5';
 import { FaEdit } from 'react-icons/fa';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import * as db from "../../../Database";
 
 export default function Assignments() {
+    const { cid } = useParams();
+    const assignments = db.assignments;
+
     return (
         <div id="wd-assignments" className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -44,74 +49,40 @@ export default function Assignments() {
                     </div>
 
                     <ListGroup className="rounded-0">
-                        <ListGroupItem className="border" style={{ borderLeft: "5px solid #28a745 !important" }}>
-                            <div className="d-flex align-items-start py-2">
-                                <BsGripVertical className="me-2 fs-4 text-muted" />
-                                <FaEdit className="me-3 fs-5 text-success mt-1" />
-                                <div className="flex-grow-1">
-                                    <Link href="/Courses/1234/Assignments/A1" className="text-decoration-none text-dark">
-                                        <strong>A1</strong>
-                                    </Link>
-                                    <div className="small">
-                                        <span className="text-danger">Multiple Modules</span>
-                                        <span className="text-muted"> | Not available until May 6 at 12:00am | </span>
+                        {assignments
+                            .filter((assignment: any) => assignment.course === cid)
+                            .map((assignment: any) => (
+                                <ListGroupItem
+                                    key={assignment._id}
+                                    className="border"
+                                    style={{ borderLeft: "5px solid #28a745 !important" }}
+                                >
+                                    <div className="d-flex align-items-start py-2">
+                                        <BsGripVertical className="me-2 fs-4 text-muted" />
+                                        <FaEdit className="me-3 fs-5 text-success mt-1" />
+                                        <div className="flex-grow-1">
+                                            <Link
+                                                href={`/Courses/${cid}/Assignments/${assignment._id}`}
+                                                className="text-decoration-none text-dark"
+                                            >
+                                                <strong>{assignment.title}</strong>
+                                            </Link>
+                                            <div className="small">
+                                                <span className="text-danger">Multiple Modules</span>
+                                                <span className="text-muted"> | Not available until {assignment.availableDate} | </span>
+                                            </div>
+                                            <div className="small text-muted">
+                                                <strong>Due</strong> {assignment.dueDate} | {assignment.points} pts
+                                            </div>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <FaCheckCircle className="text-success fs-5 me-4" />
+                                            <IoEllipsisVertical className="text-muted fs-4" />
+                                        </div>
                                     </div>
-                                    <div className="small text-muted">
-                                        <strong>Due</strong> May 13 at 11:59pm | 100 pts
-                                    </div>
-                                </div>
-                                <div className="d-flex align-items-center">
-                                    <FaCheckCircle className="text-success fs-5 me-4" />
-                                    <IoEllipsisVertical className="text-muted fs-4" />
-                                </div>
-                            </div>
-                        </ListGroupItem>
-
-                        <ListGroupItem className="border" style={{ borderLeft: "5px solid #28a745 !important" }}>
-                            <div className="d-flex align-items-start py-2">
-                                <BsGripVertical className="me-2 fs-4 text-muted" />
-                                <FaEdit className="me-3 fs-5 text-success mt-1" />
-                                <div className="flex-grow-1">
-                                    <Link href="/Courses/1234/Assignments/A2" className="text-decoration-none text-dark">
-                                        <strong>A2</strong>
-                                    </Link>
-                                    <div className="small">
-                                        <span className="text-danger">Multiple Modules</span>
-                                        <span className="text-muted"> | Not available until May 13 at 12:00am | </span>
-                                    </div>
-                                    <div className="small text-muted">
-                                        <strong>Due</strong> May 20 at 11:59pm | 100 pts
-                                    </div>
-                                </div>
-                                <div className="d-flex align-items-center">
-                                    <FaCheckCircle className="text-success fs-5 me-4" />
-                                    <IoEllipsisVertical className="text-muted fs-4" />
-                                </div>
-                            </div>
-                        </ListGroupItem>
-
-                        <ListGroupItem className="border" style={{ borderLeft: "5px solid #28a745 !important" }}>
-                            <div className="d-flex align-items-start py-2">
-                                <BsGripVertical className="me-2 fs-4 text-muted" />
-                                <FaEdit className="me-3 fs-5 text-success mt-1" />
-                                <div className="flex-grow-1">
-                                    <Link href="/Courses/1234/Assignments/A3" className="text-decoration-none text-dark">
-                                        <strong>A3</strong>
-                                    </Link>
-                                    <div className="small">
-                                        <span className="text-danger">Multiple Modules</span>
-                                        <span className="text-muted"> | Not available until May 20 at 12:00am | </span>
-                                    </div>
-                                    <div className="small text-muted">
-                                        <strong>Due</strong> May 27 at 11:59pm | 100 pts
-                                    </div>
-                                </div>
-                                <div className="d-flex align-items-center">
-                                    <FaCheckCircle className="text-success fs-5 me-4" />
-                                    <IoEllipsisVertical className="text-muted fs-4" />
-                                </div>
-                            </div>
-                        </ListGroupItem>
+                                </ListGroupItem>
+                            ))
+                        }
                     </ListGroup>
                 </ListGroupItem>
             </ListGroup>

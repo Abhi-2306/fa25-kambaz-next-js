@@ -8,32 +8,44 @@ import { BsGraphUp } from "react-icons/bs";
 import { TfiAnnouncement } from "react-icons/tfi";
 import { FaChartBar } from "react-icons/fa6";
 import { IoNotificationsOutline } from "react-icons/io5";
+
 export default function CourseStatus() {
+    const buttons = [
+        { label: "Import Existing Content", icon: BiImport },
+        { label: "Import from Commons", icon: LiaFileImportSolid },
+        { label: "Choose Home Page", icon: AiFillHome },
+        { label: "View Course Stream", icon: BsGraphUp },
+        { label: "New Announcement", icon: TfiAnnouncement },
+        { label: "New Analytics", icon: FaChartBar },
+        { label: "View Course Notifications", icon: IoNotificationsOutline }
+    ];
+
     return (
         <div id="wd-course-status" style={{ width: "350px" }}>
             <h2>Course Status</h2>
             <div className="d-flex">
                 <div className="w-50 pe-1">
-                    <Button variant="secondary" size="lg" className="w-100 text-nowrap ">
-                        <MdDoNotDisturbAlt className="me-2 fs-5" /> Unpublish </Button> </div>
+                    <Button variant="secondary" size="lg" className="w-100 text-nowrap">
+                        <MdDoNotDisturbAlt className="me-2 fs-5" /> Unpublish
+                    </Button>
+                </div>
                 <div className="w-50">
                     <Button variant="success" size="lg" className="w-100">
-                        <FaCheckCircle className="me-2 fs-5" /> Publish </Button> </div>
+                        <FaCheckCircle className="me-2 fs-5" /> Publish
+                    </Button>
+                </div>
             </div>
             <br />
-            <Button variant="secondary" size="lg" className="w-100 mt-1 text-start">
-                <BiImport className="me-2 fs-5" /> Import Existing Content </Button>
-            <Button variant="secondary" size="lg" className="w-100 mt-1 text-start">
-                <LiaFileImportSolid className="me-2 fs-5" /> Import from Commons </Button>
-            <Button variant="secondary" size="lg" className="w-100 mt-1 text-start">
-                <AiFillHome className="me-2 fs-5" /> Choose Home Page </Button>
-            <Button variant="secondary" size="lg" className="w-100 mt-1 text-start">
-                <BsGraphUp className="me-2 fs-5" /> View Course Stream </Button>
-            <Button variant="secondary" size="lg" className="w-100 mt-1 text-start">
-                <TfiAnnouncement className="me-2 fs-5" /> New Announcement </Button>
-            <Button variant="secondary" size="lg" className="w-100 mt-1 text-start">
-                <FaChartBar className="me-2 fs-5" /> New Analytics </Button>
-            <Button variant="secondary" size="lg" className="w-100 mt-1 text-start">
-                <IoNotificationsOutline className="me-2 fs-5" /> View Course Notifications </Button>
-        </div>);
+            {buttons.map((button, index) => (
+                <Button
+                    key={index}
+                    variant="secondary"
+                    size="lg"
+                    className="w-100 mt-1 text-start"
+                >
+                    {button.icon({ className: "me-2 fs-5" })} {button.label}
+                </Button>
+            ))}
+        </div>
+    );
 }
