@@ -1,5 +1,5 @@
 "use client"
-import { Form, Button, Card, Row, Col } from 'react-bootstrap';
+import { Form, Card, Row, Col } from 'react-bootstrap';
 import { FaCalendarAlt } from 'react-icons/fa';
 import { useParams } from 'next/navigation';
 import * as db from "../../../../Database";
@@ -8,7 +8,7 @@ export default function AssignmentEditor() {
     const { cid, aid } = useParams();
     const assignments = db.assignments;
 
-    const assignment = assignments.find((a: any) => a._id === aid);
+    const assignment = assignments.find((a: any) => a._id === aid); // eslint-disable-line @typescript-eslint/no-explicit-any
     if (!assignment) {
         return <div>Assignment not found</div>;
     }

@@ -50,8 +50,8 @@ export default function Assignments() {
 
                     <ListGroup className="rounded-0">
                         {assignments
-                            .filter((assignment: any) => assignment.course === cid)
-                            .map((assignment: any) => (
+                            .filter((assignment: any) => assignment.course === cid) // eslint-disable-line @typescript-eslint/no-explicit-any
+                            .map((assignment: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                                 <ListGroupItem
                                     key={assignment._id}
                                     className="border"
