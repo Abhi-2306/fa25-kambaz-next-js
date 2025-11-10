@@ -1,14 +1,45 @@
+"use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Nav, NavItem, NavLink } from "react-bootstrap";
+import { useSelector } from "react-redux";
+import { RootState } from "../store";
 
 export default function AccountNavigation() {
+    const { currentUser } = useSelector((state: RootState) => state.accountReducer);
+    const links = currentUser ? ["Profile"] : ["Signin", "Signup"];
+    const pathname = usePathname();
+
     return (
-        <div id="wd-account-navigation" className="wd list-group fs-5 rounded-0">
-            <Link href="/Account/Signin" id="wd-account-signin-link"
-                className="list-group-item active border-0"> Signin </Link>
-            <Link href="/Account/Signup" id="wd-account-signup-link"
-                className="list-group-item text-danger border-0"> Signup </Link>
-            <Link href="/Account/Profile" id="wd-account-profile-link"
-                className="list-group-item text-danger border-0"> Profile </Link>
-        </div>
+        <Nav className="flex-column">
+            {links.map((link) => (
+                <NavItem key={link} className="position-relative d-flex">
+                    {pathname.toLowerCase().includes(link.toLowerCase()) && (
+                        <div
+                            className="bg-black"
+                            style={{
+                                width: "5px",
+                                height: "40px",
+                                position: "absolute",
+                                left: "-20px",
+                                top: "50%",
+                                transform: "translateY(-50%)"
+                            }}
+                        />
+                    )}
+                    <NavLink
+                        as={Link}
+                        href={`/Account/${link}`}
+                        className="text-danger text-decoration-none border-0"
+                        style={{
+                            backgroundColor: "transparent",
+                            borderRadius: 0
+                        }}
+                    >
+                        {link}
+                    </NavLink>
+                </NavItem>
+            ))}
+        </Nav>
     );
 }

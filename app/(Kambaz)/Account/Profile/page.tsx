@@ -1,72 +1,61 @@
-import Link from "next/link";
-import { FormControl, Form } from "react-bootstrap";
-
+"use client";
+import { redirect } from "next/dist/client/components/navigation";
+import { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { setCurrentUser } from "../reducer";
+import { RootState } from "../../store";
+import { Button, FormControl } from "react-bootstrap";
 export default function Profile() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [profile, setProfile] = useState<any>({});
+    const dispatch = useDispatch();
+    const { currentUser } = useSelector((state: RootState) => state.accountReducer);
+    const fetchProfile = () => {
+        if (!currentUser) return redirect("/Account/Signin");
+        setProfile(currentUser);
+    };
+    const signout = () => {
+        dispatch(setCurrentUser(null));
+        redirect("/Account/Signin");
+    };
+    useEffect(() => {
+        fetchProfile();
+    });
     return (
-        <div className="d-flex min-vh-100">
-            <div id="wd-profile-screen" style={{ width: "300px" }}>
-                <h1>Profile</h1>
-                <FormControl
-                    id="wd-username"
-                    placeholder="Username"
-                    defaultValue="alice"
-                    className="mb-2"
-                    suppressHydrationWarning={true}
-                />
-                <FormControl
-                    id="wd-password"
-                    placeholder="Password"
-                    type="password"
-                    defaultValue="123"
-                    className="mb-2"
-                    suppressHydrationWarning={true}
-                />
-                <FormControl
-                    id="wd-firstname"
-                    placeholder="First Name"
-                    defaultValue="Alice"
-                    className="mb-2"
-                    suppressHydrationWarning={true}
-                />
-                <FormControl
-                    id="wd-lastname"
-                    placeholder="Last Name"
-                    defaultValue="Wonderland"
-                    className="mb-2"
-                    suppressHydrationWarning={true}
-                />
-                <FormControl
-                    id="wd-dob"
-                    type="date"
-                    defaultValue="mm/dd/yyyy"
-                    className="mb-2"
-                    suppressHydrationWarning={true}
-                />
-                <FormControl
-                    id="wd-email"
-                    type="email"
-                    placeholder="Email"
-                    defaultValue="alice@wonderland"
-                    className="mb-2"
-                    suppressHydrationWarning={true}
-                />
-                <Form.Select
-                    id="wd-role"
-                    defaultValue="USER"
-                    className="mb-2"
-                    suppressHydrationWarning={true}
-                >
-                    <option value="USER">User</option>
-                    <option value="ADMIN">Admin</option>
-                    <option value="FACULTY">Faculty</option>
-                    <option value="STUDENT">Student</option>
-                </Form.Select>
-                <Link
-                    href="/Account/Signin"
-                    className="btn btn-danger w-100">
-                    Sign out
-                </Link>
-            </div>
+        <div className="wd-profile-screen">
+            <h3>Profile</h3>
+            {profile && (
+                <div>
+                    <FormControl id="wd-username" className="mb-2"
+                        defaultValue={profile.username}
+                        onChange={(e) => setProfile({ ...profile, username: e.target.value })} />
+                    <FormControl id="wd-password" className="mb-2"
+                        defaultValue={profile.password}
+                        onChange={(e) => setProfile({ ...profile, password: e.target.value })} />
+                    <FormControl id="wd-firstname" className="mb-2"
+                        defaultValue={profile.firstName}
+                        onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} />
+                    <FormControl id="wd-lastname" className="mb-2"
+                        defaultValue={profile.lastName}
+                        onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} />
+                    <FormControl id="wd-dob" className="mb-2" type="date"
+                        defaultValue={profile.dob}
+                        onChange={(e) => setProfile({ ...profile, dob: e.target.value })} />
+                    <FormControl id="wd-email" className="mb-2"
+                        defaultValue={profile.email}
+                        onChange={(e) => setProfile({ ...profile, email: e.target.value })} />
+                    <select className="form-control mb-2" id="wd-role"
+                        onChange={(e) => setProfile({ ...profile, role: e.target.value })} >
+                        <option value="USER">User</option>
+                        <option value="ADMIN">Admin</option>
+                        <option value="FACULTY">Faculty</option>{" "}
+                        <option value="STUDENT">Student</option>
+                    </select>
+                    <Button onClick={signout} className="w-100 mb-2" id="wd-signout-btn">
+                        Sign out
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

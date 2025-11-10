@@ -1,17 +1,66 @@
 "use client"
 import { Form, Card, Row, Col } from 'react-bootstrap';
 import { FaCalendarAlt } from 'react-icons/fa';
-import { useParams } from 'next/navigation';
-import * as db from "../../../../Database";
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSelector, useDispatch } from "react-redux";
+import { addAssignment, updateAssignment } from "../reducer";
+import { RootState } from "../../../../store";
+import { useState, useEffect } from 'react';
+
 export default function AssignmentEditor() {
     const { cid, aid } = useParams();
-    const assignments = db.assignments;
+    const router = useRouter();
+    const dispatch = useDispatch();
+    const { assignments } = useSelector((state: RootState) => state.assignmentsReducer);
+    const { currentUser } = useSelector((state: RootState) => state.accountReducer);
 
-    const assignment = assignments.find((a: any) => a._id === aid); // eslint-disable-line @typescript-eslint/no-explicit-any
-    if (!assignment) {
-        return <div>Assignment not found</div>;
+    const isNewAssignment = aid === 'new';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingAssignment = isNewAssignment ? null : assignments.find((a: any) => a._id === aid);
+
+    const [assignment, setAssignment] = useState(() => {
+        if (existingAssignment) {
+            return existingAssignment;
+        }
+        return {
+            title: "",
+            description: "",
+            points: 100,
+            dueDate: "2024-05-13",
+            availableDate: "2024-05-06",
+            untilDate: "2024-05-20",
+            course: cid,
+        };
+    });
+
+    useEffect(() => {
+        if (!isNewAssignment) {
+            if (existingAssignment) {
+                // Update state when existing assignment is found
+                setAssignment(existingAssignment);
+            } else {
+                // Assignment not found, redirect back
+                router.push(`/Courses/${cid}/Assignments`);
+            }
+        }
+    }, [isNewAssignment, existingAssignment, cid, router]);
+
+    const handleSave = () => {
+        if (isNewAssignment) {
+            dispatch(addAssignment(assignment));
+        } else {
+            dispatch(updateAssignment(assignment));
+        }
+        router.push(`/Courses/${cid}/Assignments`);
+    };
+
+    const isFaculty = currentUser?.role === "FACULTY";
+    if (!isFaculty && isNewAssignment) {
+        router.push(`/Courses/${cid}/Assignments`);
+        return null;
     }
+
     return (
         <div id="wd-assignments-editor" className="container mt-4">
             <Form>
@@ -20,18 +69,21 @@ export default function AssignmentEditor() {
                     <Form.Control
                         type="text"
                         id="wd-name"
-                        defaultValue={assignment.title}
-                        suppressHydrationWarning={true}
+                        value={assignment.title}
+                        onChange={(e) => setAssignment({ ...assignment, title: e.target.value })}
+                        disabled={!isFaculty}
                     />
                 </Form.Group>
+
                 <Form.Group className="mb-4">
                     <Form.Control
                         as="textarea"
                         rows={12}
                         id="wd-description"
-                        defaultValue={assignment.description || ""}
-                        suppressHydrationWarning={true}
+                        value={assignment.description}
+                        onChange={(e) => setAssignment({ ...assignment, description: e.target.value })}
                         style={{ resize: 'none' }}
+                        disabled={!isFaculty}
                     />
                 </Form.Group>
 
@@ -43,98 +95,10 @@ export default function AssignmentEditor() {
                         <Form.Control
                             type="number"
                             id="wd-points"
-                            defaultValue={assignment.points}
-                            suppressHydrationWarning={true}
+                            value={assignment.points}
+                            onChange={(e) => setAssignment({ ...assignment, points: parseInt(e.target.value) })}
+                            disabled={!isFaculty}
                         />
-                    </Col>
-                </Row>
-
-                <Row className="mb-3">
-                    <Col md={3} className="text-end">
-                        <Form.Label htmlFor="wd-group">Assignment Group</Form.Label>
-                    </Col>
-                    <Col md={9}>
-                        <Form.Select
-                            id="wd-group"
-                            defaultValue="ASSIGNMENTS"
-                            suppressHydrationWarning={true}
-                        >
-                            <option value="ASSIGNMENTS">ASSIGNMENTS</option>
-                            <option value="QUIZZES">QUIZZES</option>
-                            <option value="EXAMS">EXAMS</option>
-                            <option value="PROJECTS">PROJECTS</option>
-                        </Form.Select>
-                    </Col>
-                </Row>
-                <Row className="mb-3">
-                    <Col md={3} className="text-end">
-                        <Form.Label htmlFor="wd-display-grade-as">Display Grade as</Form.Label>
-                    </Col>
-                    <Col md={9}>
-                        <Form.Select
-                            id="wd-display-grade-as"
-                            defaultValue="Percentage"
-                            suppressHydrationWarning={true}
-                        >
-                            <option value="Percentage">Percentage</option>
-                            <option value="Points">Points</option>
-                            <option value="Complete/Incomplete">Complete/Incomplete</option>
-                        </Form.Select>
-                    </Col>
-                </Row>
-
-                <Row className="mb-3">
-                    <Col md={3} className="text-end">
-                        <Form.Label htmlFor="wd-submission-type">Submission Type</Form.Label>
-                    </Col>
-                    <Col md={9}>
-                        <Card className="p-3">
-                            <Form.Select
-                                id="wd-submission-type"
-                                defaultValue="Online"
-                                className="mb-3"
-                                suppressHydrationWarning={true}
-                            >
-                                <option value="Online">Online</option>
-                                <option value="On Paper">On Paper</option>
-                                <option value="External Tool">External Tool</option>
-                            </Form.Select>
-
-                            <div>
-                                <Form.Label className="fw-bold">Online Entry Options</Form.Label>
-                                <Form.Check
-                                    type="checkbox"
-                                    id="wd-text-entry"
-                                    label="Text Entry"
-                                    suppressHydrationWarning={true}
-                                />
-                                <Form.Check
-                                    type="checkbox"
-                                    id="wd-website-url"
-                                    label="Website URL"
-                                    defaultChecked
-                                    suppressHydrationWarning={true}
-                                />
-                                <Form.Check
-                                    type="checkbox"
-                                    id="wd-media-recordings"
-                                    label="Media Recordings"
-                                    suppressHydrationWarning={true}
-                                />
-                                <Form.Check
-                                    type="checkbox"
-                                    id="wd-student-annotation"
-                                    label="Student Annotation"
-                                    suppressHydrationWarning={true}
-                                />
-                                <Form.Check
-                                    type="checkbox"
-                                    id="wd-file-upload"
-                                    label="File Uploads"
-                                    suppressHydrationWarning={true}
-                                />
-                            </div>
-                        </Card>
                     </Col>
                 </Row>
 
@@ -145,23 +109,14 @@ export default function AssignmentEditor() {
                     <Col md={9}>
                         <Card className="p-3">
                             <Form.Group className="mb-3">
-                                <Form.Label htmlFor="wd-assign-to" className="fw-bold">Assign to</Form.Label>
-                                <div className="form-control bg-light">
-                                    <span className="badge bg-secondary text-dark me-1">
-                                        Everyone
-                                        <button type="button" className="btn-close btn-sm ms-2" aria-label="Remove"></button>
-                                    </span>
-                                </div>
-                            </Form.Group>
-
-                            <Form.Group className="mb-3">
                                 <Form.Label htmlFor="wd-due-date" className="fw-bold">Due</Form.Label>
                                 <div className="input-group">
                                     <Form.Control
-                                        type="text"
+                                        type="date"
                                         id="wd-due-date"
-                                        defaultValue={assignment.dueDate}
-                                        suppressHydrationWarning={true}
+                                        value={assignment.dueDate}
+                                        onChange={(e) => setAssignment({ ...assignment, dueDate: e.target.value })}
+                                        disabled={!isFaculty}
                                     />
                                     <button className="btn btn-outline-secondary" type="button">
                                         <FaCalendarAlt />
@@ -172,13 +127,16 @@ export default function AssignmentEditor() {
                             <Row>
                                 <Col md={6}>
                                     <Form.Group>
-                                        <Form.Label htmlFor="wd-available-from" className="fw-bold">Available from</Form.Label>
+                                        <Form.Label htmlFor="wd-available-from" className="fw-bold">
+                                            Available from
+                                        </Form.Label>
                                         <div className="input-group">
                                             <Form.Control
-                                                type="text"
+                                                type="date"
                                                 id="wd-available-from"
-                                                defaultValue={assignment.availableDate}
-                                                suppressHydrationWarning={true}
+                                                value={assignment.availableDate}
+                                                onChange={(e) => setAssignment({ ...assignment, availableDate: e.target.value })}
+                                                disabled={!isFaculty}
                                             />
                                             <button className="btn btn-outline-secondary" type="button">
                                                 <FaCalendarAlt />
@@ -191,10 +149,11 @@ export default function AssignmentEditor() {
                                         <Form.Label htmlFor="wd-available-until" className="fw-bold">Until</Form.Label>
                                         <div className="input-group">
                                             <Form.Control
-                                                type="text"
+                                                type="date"
                                                 id="wd-available-until"
-                                                defaultValue={assignment.dueDate || ""}
-                                                suppressHydrationWarning={true}
+                                                value={assignment.untilDate}
+                                                onChange={(e) => setAssignment({ ...assignment, untilDate: e.target.value })}
+                                                disabled={!isFaculty}
                                             />
                                             <button className="btn btn-outline-secondary" type="button">
                                                 <FaCalendarAlt />
@@ -210,12 +169,20 @@ export default function AssignmentEditor() {
                 <hr className="my-4" />
 
                 <div className="d-flex justify-content-end">
-                    <Link href={`/Courses/${cid}/Assignments`} className="btn btn-secondary me-2" id="wd-cancel">
-                        Cancel
-                    </Link>
-                    <Link href={`/Courses/${cid}/Assignments`} className="btn btn-danger" id="wd-save">
-                        Save
-                    </Link>
+                    {isFaculty ? (
+                        <>
+                            <Link href={`/Courses/${cid}/Assignments`} className="btn btn-secondary me-2">
+                                Cancel
+                            </Link>
+                            <button type="button" className="btn btn-danger" onClick={handleSave}>
+                                Save
+                            </button>
+                        </>
+                    ) : (
+                        <Link href={`/Courses/${cid}/Assignments`} className="btn btn-secondary">
+                            Back
+                        </Link>
+                    )}
                 </div>
             </Form>
         </div>
