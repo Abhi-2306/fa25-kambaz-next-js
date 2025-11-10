@@ -22,14 +22,12 @@ export default function Dashboard() {
         image: "/images/reactjs.jpg", description: "New Description"
     });
 
-    // Redirect to sign-in if not logged in
     useEffect(() => {
         if (!currentUser) {
             router.push("/Account/Signin");
         }
     }, [currentUser, router]);
 
-    // Don't render anything if not logged in (will redirect)
     if (!currentUser) {
         return null;
     }
@@ -59,17 +57,14 @@ export default function Dashboard() {
 
     const handleCourseClick = (courseId: string, event: React.MouseEvent) => {
         if (!currentUser) return;
-        // Faculty can always access courses
         if (currentUser.role === "FACULTY") {
             router.push(`/Courses/${courseId}/Home`);
             return;
         }
-        // Students can only access if enrolled
         if (isEnrolled(courseId)) {
             router.push(`/Courses/${courseId}/Home`);
         } else {
             event.preventDefault();
-            // Stay on Dashboard if not enrolled
         }
     };
 
@@ -92,7 +87,6 @@ export default function Dashboard() {
                             id="wd-add-new-course-click"
                             onClick={() => {
                                 dispatch(addNewCourse(course));
-                                // Reset form after adding
                                 setCourse({
                                     _id: "0", name: "New Course", number: "New Number",
                                     startDate: "2023-09-10", endDate: "2023-12-15",
@@ -122,11 +116,8 @@ export default function Dashboard() {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         .filter((course: any) => {
                             if (!currentUser) return false;
-                            // Faculty can see all courses
                             if (currentUser.role === "FACULTY") return true;
-                            // If showAllCourses is true, show all courses; otherwise show only enrolled
                             if (showAllCourses) return true;
-                            // Students can only see courses they're enrolled in
                             return isEnrolled(course._id);
                         })
 

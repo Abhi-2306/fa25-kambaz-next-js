@@ -12,7 +12,7 @@ export default function Signin() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [credentials, setCredentials] = useState<any>({});
     const dispatch = useDispatch();
-    const router = useRouter();  // Use useRouter instead of redirect
+    const router = useRouter();
 
     const signin = () => {
         const user = db.users.find(
@@ -22,13 +22,12 @@ export default function Signin() {
                 u.password === credentials.password
         );
         if (!user) {
-            alert("Invalid credentials");  // Optional: add error handling
+            alert("Invalid credentials");
             return;
         }
         dispatch(setCurrentUser(user));
-        // Load enrollments from localStorage when user signs in
         dispatch(loadEnrollmentsFromStorage());
-        router.push("/Dashboard");  // Use router.push instead of redirect
+        router.push("/Dashboard");
     };
 
     return (

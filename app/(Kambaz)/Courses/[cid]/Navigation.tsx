@@ -5,7 +5,7 @@ import { usePathname, useParams } from "next/navigation";
 export default function CourseNavigation() {
     const pathname = usePathname();
     const params = useParams();
-    const cid = params.cid; // Get course ID from dynamic route
+    const cid = params.cid;
 
     const links = ["Home", "Modules", "Piazza", "Zoom", "Assignments", "Quizzes", "Grades", "People"];
 

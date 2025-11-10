@@ -6,6 +6,7 @@ import { useSelector } from "react-redux";
 import { useParams, useRouter } from "next/navigation";
 import { RootState } from "../../store";
 import Breadcrumb from "./Breadcrumb";
+import { Offcanvas } from "react-bootstrap";
 
 export default function CoursesLayout({ children }: { children: ReactNode }) {
     const { cid } = useParams();
@@ -16,17 +17,16 @@ export default function CoursesLayout({ children }: { children: ReactNode }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const course = courses.find((course: any) => course._id === cid);
     const [showSidebar, setShowSidebar] = useState(true);
+    const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
     useEffect(() => {
         if (!currentUser) {
             router.push("/Dashboard");
             return;
         }
-        // Faculty can always access courses
         if (currentUser.role === "FACULTY") {
             return;
         }
-        // Students must be enrolled to access
         const isEnrolled = enrollments.some(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (e: any) => e.user === currentUser._id && e.course === cid
@@ -36,14 +36,13 @@ export default function CoursesLayout({ children }: { children: ReactNode }) {
         }
     }, [currentUser, enrollments, cid, router]);
 
-    // If not enrolled (and not faculty), don't render the course content
     if (currentUser && currentUser.role !== "FACULTY") {
         const isEnrolled = enrollments.some(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (e: any) => e.user === currentUser._id && e.course === cid
         );
         if (!isEnrolled) {
-            return null; // Will redirect via useEffect
+            return null;
         }
     }
 
@@ -51,7 +50,12 @@ export default function CoursesLayout({ children }: { children: ReactNode }) {
         <div id="wd-courses">
             <h2 className="text-danger">
                 <FaAlignJustify
-                    className="me-4 fs-4 mb-1"
+                    className="me-4 fs-4 mb-1 d-md-none"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setShowMobileSidebar(true)}
+                />
+                <FaAlignJustify
+                    className="me-4 fs-4 mb-1 d-none d-md-inline-block"
                     style={{ cursor: 'pointer' }}
                     onClick={() => setShowSidebar(!showSidebar)}
                 />
@@ -68,6 +72,23 @@ export default function CoursesLayout({ children }: { children: ReactNode }) {
                     {children}
                 </div>
             </div>
+
+            <Offcanvas
+                show={showMobileSidebar}
+                onHide={() => setShowMobileSidebar(false)}
+                className="d-md-none"
+            >
+                <Offcanvas.Header closeButton>
+                    <Offcanvas.Title className="text-danger">
+                        {course?.name || "Course Navigation"}
+                    </Offcanvas.Title>
+                </Offcanvas.Header>
+                <Offcanvas.Body>
+                    <div onClick={() => setShowMobileSidebar(false)}>
+                        <CourseNavigation />
+                    </div>
+                </Offcanvas.Body>
+            </Offcanvas>
         </div>
     );
 }
