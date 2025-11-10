@@ -9,16 +9,22 @@ export default function ModulesControls({
     moduleName,
     setModuleName,
     addModule,
-    onCollapseAll
+    onCollapseAll,
+    isFaculty
 }: {
     moduleName: string;
     setModuleName: (title: string) => void;
     addModule: () => void;
     onCollapseAll?: () => void;
+    isFaculty?: boolean;
 }) {
     const [show, setShow] = useState(false);
     const handleClose = () => setShow(false);
-    const handleShow = () => setShow(true);
+    const handleShow = () => {
+        if (isFaculty) {
+            setShow(true);
+        }
+    };
 
     return (
         <div id="wd-modules-controls" className="text-nowrap d-flex justify-content-end">
@@ -53,18 +59,26 @@ export default function ModulesControls({
                     </DropdownItem>
                 </DropdownMenu>
             </Dropdown>
-            <Button variant="danger" size="lg" className="me-1" id="wd-add-module-btn" onClick={handleShow}>
+            <Button
+                variant="danger"
+                size="lg"
+                className="me-1"
+                id="wd-add-module-btn"
+                onClick={handleShow}
+            >
                 <FaPlus className="position-relative me-2" style={{ bottom: "1px" }} />
                 Module
             </Button>
-            <ModuleEditor
-                show={show}
-                handleClose={handleClose}
-                dialogTitle="Add Module"
-                moduleName={moduleName}
-                setModuleName={setModuleName}
-                addModule={addModule}
-            />
+            {isFaculty ? (
+                <ModuleEditor
+                    show={show}
+                    handleClose={handleClose}
+                    dialogTitle="Add Module"
+                    moduleName={moduleName}
+                    setModuleName={setModuleName}
+                    addModule={addModule}
+                />
+            ) : null}
         </div>
     );
 }

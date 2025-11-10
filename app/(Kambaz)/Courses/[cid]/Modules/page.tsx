@@ -16,7 +16,10 @@ export default function Modules() {
     const { cid } = useParams();
     const [moduleName, setModuleName] = useState("");
     const { modules } = useSelector((state: RootState) => state.modulesReducer);
+    const { currentUser } = useSelector((state: RootState) => state.accountReducer);
     const dispatch = useDispatch();
+
+    const isFaculty = currentUser?.role === "FACULTY";
 
     const [expandedModules, setExpandedModules] = useState<Set<string>>(
         new Set(modules.map((m: any) => m._id))
@@ -32,15 +35,20 @@ export default function Modules() {
         setExpandedModules(newExpanded);
     };
 
+    const handleAddModule = () => {
+        if (isFaculty && moduleName) {
+            dispatch(addModule({ name: moduleName, course: cid }));
+            setModuleName("");
+        }
+    };
+
     return (
         <div>
             <ModulesControls
                 setModuleName={setModuleName}
                 moduleName={moduleName}
-                addModule={() => {
-                    dispatch(addModule({ name: moduleName, course: cid }));
-                    setModuleName("");
-                }}
+                addModule={handleAddModule}
+                isFaculty={isFaculty}
             />
             <br /><br /><br /><br />
             <ListGroup id="wd-modules" className="rounded-0">
@@ -68,16 +76,18 @@ export default function Modules() {
                                             >
                                                 {module.name}
                                             </span>
-                                            <ModuleControlButtons
-                                                moduleId={module._id}
-                                                deleteModule={(moduleId) => {
-                                                    dispatch(deleteModule(moduleId));
-                                                }}
-                                                editModule={(moduleId) => dispatch(editModule(moduleId))}
-                                            />
+                                            {isFaculty && (
+                                                <ModuleControlButtons
+                                                    moduleId={module._id}
+                                                    deleteModule={(moduleId) => {
+                                                        dispatch(deleteModule(moduleId));
+                                                    }}
+                                                    editModule={(moduleId) => dispatch(editModule(moduleId))}
+                                                />
+                                            )}
                                         </>
                                     )}
-                                    {module.editing && (
+                                    {module.editing && isFaculty && (
                                         <>
                                             <FormControl
                                                 className="me-2"
