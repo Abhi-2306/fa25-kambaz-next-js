@@ -1,3 +1,4 @@
+/* eslint-disable */
 "use client"
 import { useParams } from "next/navigation";
 import LessonControlButtons from './LessonControlButtons';
@@ -29,9 +30,7 @@ export default function Modules() {
             <br /><br /><br /><br />
             <ListGroup id="wd-modules" className="rounded-0">
                 {modules
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .filter((module: any) => module.course === cid)
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .map((module: any) => (
                         <ListGroupItem key={module._id} className="wd-module p-0 mb-5 fs-5 border-gray">
                             <div className="wd-title p-3 ps-2 bg-secondary">
