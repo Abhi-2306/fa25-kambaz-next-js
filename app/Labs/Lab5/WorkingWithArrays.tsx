@@ -38,10 +38,13 @@ export default function WorkingWithArrays() {
                 Create Todo
             </a><hr />
             <h3>Removing from an Array</h3>
-            <a id="wd-remove-todo" className="btn btn-primary float-end" href={`${API}/${removeId}/delete`}>
-                Remove Todo with ID = {removeId} </a>
             <FormControl id="wd-todo-id-remove" defaultValue={removeId} className="w-50"
                 onChange={(e) => setRemoveId(e.target.value)} /><hr />
+            <a id="wd-remove-todo" className="btn btn-primary float-end"
+                href={`${API}/${removeId}/delete`}
+                target="_blank">
+                Remove Todo with ID = {removeId}
+            </a>
             <h3>Updating an Item in an Array</h3>
             <a href={`${API}/${updateId}/title/${encodeURIComponent(updateTitle)}`} className="btn btn-primary float-end">
                 Update Todo</a>
