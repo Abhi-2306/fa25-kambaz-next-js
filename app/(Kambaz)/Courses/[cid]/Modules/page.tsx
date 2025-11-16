@@ -14,7 +14,7 @@ import { RootState } from "../../../store";
 import * as client from "../../client";
 
 export default function Modules() {
-    const { cid } = useParams<{cid: string}>();
+    const { cid } = useParams<{ cid: string }>();
     const [moduleName, setModuleName] = useState("");
     const { modules } = useSelector((state: RootState) => state.modulesReducer);
     const { currentUser } = useSelector((state: RootState) => state.accountReducer);
@@ -126,8 +126,7 @@ export default function Modules() {
                                                 variant="success"
                                                 size="sm"
                                                 className="me-2"
-                                                onClick={() => dispatch(updateModule({ ...module, editing: false }))}
-                                            >
+                                                onClick={() => onUpdateModule({ ...module, editing: false })}                                            >
                                                 <FaCheck />
                                             </Button>
                                         </>
