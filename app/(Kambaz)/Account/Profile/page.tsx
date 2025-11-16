@@ -31,7 +31,6 @@ export default function Profile() {
     const updateProfile = async () => {
         try {
             const updatedProfile = await client.updateUser(profile);
-            console.log("Updated profile:", updatedProfile);
             dispatch(setCurrentUser(updatedProfile));
             alert("Profile updated successfully!");
         } catch (error) {
@@ -42,7 +41,7 @@ export default function Profile() {
 
     useEffect(() => {
         fetchProfile();
-    }, [currentUser]); // Add dependency array
+    }, [currentUser]);
 
     return (
         <div className="wd-profile-screen">

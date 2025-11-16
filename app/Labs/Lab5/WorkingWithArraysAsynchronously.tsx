@@ -11,29 +11,50 @@ import { FaPencil } from "react-icons/fa6";
 export default function WorkingWithArraysAsynchronously() {
     const [todos, setTodos] = useState<any[]>([]);
     const [editingTodo, setEditingTodo] = useState<any>(null);
-    const [errorMessage, setErrorMessage] = useState(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const fetchTodos = async () => {
-        const todos = await client.fetchTodos();
-        setTodos(todos);
+        try {
+            const todos = await client.fetchTodos();
+            setTodos(todos);
+            setErrorMessage(null);
+        } catch (error: any) {
+            setErrorMessage("Failed to fetch todos");
+        }
     };
 
     const removeTodo = async (todo: any) => {
-        const updatedTodos = await client.removeTodo(todo);
-        setTodos(updatedTodos);
+        try {
+            const updatedTodos = await client.removeTodo(todo);
+            setTodos(updatedTodos);
+            setErrorMessage(null);
+        } catch (error: any) {
+            console.log("Remove todo error:", error);
+            setErrorMessage(error.response?.data?.message || `Unable to remove Todo with ID ${todo.id}`);
+        }
     };
 
     const createNewTodo = async () => {
-        const todos = await client.createNewTodo();
-        setTodos(todos);
+        try {
+            const todos = await client.createNewTodo();
+            setTodos(todos);
+            setErrorMessage(null);
+        } catch (error: any) {
+            setErrorMessage("Failed to create new todo");
+        }
     };
 
     const postNewTodo = async () => {
-        const newTodo = await client.postNewTodo({
-            title: "New Posted Todo",
-            completed: false
-        });
-        setTodos([...todos, newTodo]);
+        try {
+            const newTodo = await client.postNewTodo({
+                title: "New Posted Todo",
+                completed: false
+            });
+            setTodos([...todos, newTodo]);
+            setErrorMessage(null);
+        } catch (error: any) {
+            setErrorMessage("Failed to post new todo");
+        }
     };
 
     const deleteTodo = async (todo: any) => {
@@ -41,26 +62,29 @@ export default function WorkingWithArraysAsynchronously() {
             await client.deleteTodo(todo);
             const newTodos = todos.filter((t) => t.id !== todo.id);
             setTodos(newTodos);
+            setErrorMessage(null);
         } catch (error: any) {
-            console.log(error);
-            setErrorMessage(error.response.data.message);
+            console.log("Delete todo error:", error);
+            setErrorMessage(error.response?.data?.message || `Unable to delete Todo with ID ${todo.id}`);
         }
-
     };
 
     const editTodo = (todo: any) => {
         setEditingTodo({ ...todo });
+        setErrorMessage(null);
     };
 
     const updateTodo = async (todo: any) => {
         try {
             await client.updateTodo(todo);
             setTodos(todos.map((t) => (t.id === todo.id ? todo : t)));
+            setEditingTodo(null);
+            setErrorMessage(null);
         } catch (error: any) {
-            setErrorMessage(error.response.data.message);
+            console.log("Update todo error:", error);
+            setErrorMessage(error.response?.data?.message || `Unable to update Todo with ID ${todo.id}`);
         }
     };
-
 
     const handleInputChange = (todo: any, field: string, value: any) => {
         const updatedTodo = { ...todo, [field]: value };
@@ -73,6 +97,7 @@ export default function WorkingWithArraysAsynchronously() {
         }
         if (e.key === "Escape") {
             setEditingTodo(null);
+            setErrorMessage(null);
         }
     };
 
@@ -83,7 +108,17 @@ export default function WorkingWithArraysAsynchronously() {
     return (
         <div id="wd-asynchronous-arrays">
             <h3>Working with Arrays Asynchronously</h3>
-            {errorMessage && (<div id="wd-todo-error-message" className="alert alert-danger mb-2 mt-2">{errorMessage}</div>)}
+            {errorMessage && (
+                <div id="wd-todo-error-message" className="alert alert-danger mb-2 mt-2 alert-dismissible">
+                    {errorMessage}
+                    <button
+                        type="button"
+                        className="btn-close"
+                        onClick={() => setErrorMessage(null)}
+                        aria-label="Close"
+                    ></button>
+                </div>
+            )}
 
             <h4>
                 Todos
@@ -117,7 +152,10 @@ export default function WorkingWithArraysAsynchronously() {
                                 value={editingTodo.title}
                                 onKeyDown={(e) => handleKeyDown(e, editingTodo)}
                                 onChange={(e) => handleInputChange(editingTodo, 'title', e.target.value)}
-                                onBlur={() => updateTodo(editingTodo)}
+                                onBlur={() => {
+                                    updateTodo(editingTodo);
+                                    setEditingTodo(null);
+                                }}
                                 autoFocus
                             />
                         ) : (

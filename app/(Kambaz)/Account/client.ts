@@ -5,7 +5,6 @@ export const USERS_API = `${HTTP_SERVER}/api/users`;
 const axiosWithCredentials = axios.create({ withCredentials: true });
 
 export const signin = async (credentials: any) => {
-    console.log("USERS_API:", process.env.NEXT_PUBLIC_HTTP_SERVER + "/api/users");
     const response = await axiosWithCredentials.post(`${USERS_API}/signin`, credentials);
     return response.data;
 };

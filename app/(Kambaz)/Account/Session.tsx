@@ -12,7 +12,6 @@ export default function Session({ children }: { children: any }) {
             dispatch(setCurrentUser(currentUser));
         } catch (err: any) {
             if (err.response?.status === 401) {
-                console.log("No active session");
                 dispatch(setCurrentUser(null));
             } else {
                 console.error("Error fetching profile:", err);

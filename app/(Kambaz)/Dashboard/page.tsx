@@ -15,6 +15,7 @@ export default function Dashboard() {
     const { currentUser } = useSelector((state: RootState) => state.accountReducer);
     const router = useRouter();
     const [showAllCourses, setShowAllCourses] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [course, setCourse] = useState<any>({
         _id: "0", name: "New Course", number: "New Number",
@@ -26,10 +27,12 @@ export default function Dashboard() {
         const newCourse = await client.createCourse(course);
         dispatch(setCourses([...courses, newCourse]));
     };
+
     const onDeleteCourse = async (courseId: string) => {
         const status = await client.deleteCourse(courseId);
         dispatch(setCourses(courses.filter((course: any) => course._id !== courseId)));
     };
+
     const onUpdateCourse = async () => {
         await client.updateCourse(course);
         dispatch(setCourses(courses.map((c: any) => {
@@ -40,6 +43,7 @@ export default function Dashboard() {
 
     const fetchCourses = async () => {
         try {
+            setIsLoading(true);
             if (currentUser?.role === "FACULTY") {
                 const allCourses = await client.fetchAllCourses();
                 dispatch(setCourses(allCourses));
@@ -53,6 +57,8 @@ export default function Dashboard() {
         } catch (error) {
             console.error("Error fetching courses:", error);
             alert("Failed to fetch courses. Please try refreshing the page.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -76,16 +82,45 @@ export default function Dashboard() {
         router.push(`/Courses/${courseId}/Home`);
     };
 
+    const handleEnrollment = async (e: React.MouseEvent, course: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            setIsLoading(true);
+            if (course.enrolled) {
+                await client.unenrollFromCourse(currentUser._id, course._id);
+                alert("Successfully unenrolled from " + course.name);
+            } else {
+                await client.enrollInCourse(currentUser._id, course._id);
+                alert("Successfully enrolled in " + course.name + "! You can now access the course.");
+            }
+
+            await fetchCourses();
+
+            if (!course.enrolled && showAllCourses) {
+                setShowAllCourses(false);
+            }
+        } catch (error: any) {
+            console.error("Enrollment error:", error);
+            alert(error.response?.data?.message || "Failed to update enrollment. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div id="wd-dashboard">
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h1 id="wd-dashboard-title" className="mb-0">Dashboard</h1>
-                <Button
-                    variant="primary"
-                    onClick={() => setShowAllCourses(!showAllCourses)}
-                >
+                {currentUser?.role !== "FACULTY" && (
+                    <Button
+                        onClick={() => setShowAllCourses(!showAllCourses)}
+                        disabled={isLoading}
+                    >
                     Enrollments
-                </Button>
+                    </Button>
+                )}
             </div>
             <hr />
 
@@ -111,90 +146,117 @@ export default function Dashboard() {
                 </>
             )}
 
-            <h2 id="wd-dashboard-published">Published Courses ({courses.length})</h2> <hr />
-            <div id="wd-dashboard-courses">
-                <Row xs={1} md={5} className="g-4">
-                    {courses.map((course: any) => (
-                        <Col key={course._id} className="wd-dashboard-course" style={{ width: "300px" }}>
-                            <Card>
-                                <div className="wd-dashboard-course-link">
-                                    <CardImg
-                                        src="/images/reactjs.jpg"
-                                        variant="top"
-                                        width="100%"
-                                        height={160}
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => navigateToCourse(course._id)}
-                                    />
-                                    <CardBody className="card-body">
-                                        <CardTitle
-                                            className="wd-dashboard-course-title text-nowrap overflow-hidden"
-                                            style={{ cursor: 'pointer' }}
-                                            onClick={() => navigateToCourse(course._id)}
-                                        >
-                                            {course.name}
-                                        </CardTitle>
-                                        <CardText className="wd-dashboard-course-description overflow-hidden" style={{ height: "100px" }}>
-                                            {course.description}
-                                        </CardText>
-                                        <Button
-                                            variant="primary"
-                                            onClick={(e) => navigateToCourse(course._id, e)}
-                                        >
-                                            Go
-                                        </Button>
-                                        {currentUser?.role === "FACULTY" && (
-                                            <>
-                                                <button onClick={(event) => {
-                                                    event.preventDefault();
-                                                    event.stopPropagation();
-                                                    onDeleteCourse(course._id);
-                                                }} className="btn btn-danger float-end"
-                                                    id="wd-delete-course-click">
-                                                    Delete
-                                                </button>
-                                                <button id="wd-edit-course-click"
-                                                    onClick={(event) => {
-                                                        event.preventDefault();
-                                                        event.stopPropagation();
-                                                        setCourse(course);
-                                                    }}
-                                                    className="btn btn-warning me-2 float-end" >
-                                                    Edit
-                                                </button>
-                                            </>
-                                        )}
-                                        {currentUser?.role !== "FACULTY" && showAllCourses && (
-                                            <button
-                                                onClick={async (e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    try {
-                                                        if (course.enrolled) {
-                                                            await client.unenrollFromCourse(currentUser._id, course._id);
-                                                            console.log("Unenrolled from course:", course._id);
-                                                        } else {
-                                                            await client.enrollInCourse(currentUser._id, course._id);
-                                                            console.log("Enrolled in course:", course._id);
-                                                        }
-                                                        await fetchCourses();
-                                                    } catch (error: any) {
-                                                        console.error("Enrollment error:", error);
-                                                        alert(error.response?.data?.message || "Failed to update enrollment. Please try again.");
+            <h2 id="wd-dashboard-published">
+                {showAllCourses ? "All Available" : "Enrolled"} Courses ({courses.length})
+            </h2>
+            <hr />
+
+            {isLoading ? (
+                <div className="text-center">
+                    <p>Loading courses...</p>
+                </div>
+            ) : (
+                <div id="wd-dashboard-courses">
+                    <Row xs={1} md={5} className="g-4">
+                        {courses.map((course: any) => {
+                            const isEnrolled = !showAllCourses || course.enrolled;
+
+                            return (
+                                <Col key={course._id} className="wd-dashboard-course" style={{ width: "300px" }}>
+                                    <Card>
+                                        <div className="wd-dashboard-course-link">
+                                            <CardImg
+                                                src="/images/reactjs.jpg"
+                                                variant="top"
+                                                width="100%"
+                                                height={160}
+                                                style={{
+                                                    cursor: isEnrolled || currentUser?.role === "FACULTY" ? 'pointer' : 'default',
+                                                    opacity: isEnrolled || currentUser?.role === "FACULTY" ? 1 : 0.7
+                                                }}
+                                                onClick={() => {
+                                                    if (isEnrolled || currentUser?.role === "FACULTY") {
+                                                        navigateToCourse(course._id);
+                                                    } else {
+                                                        alert("Please enroll in this course first to access it.");
                                                     }
                                                 }}
-                                                className={`btn float-end ${course.enrolled ? "btn-danger" : "btn-success"}`}
-                                            >
-                                                {course.enrolled ? "Unenroll" : "Enroll"}
-                                            </button>
-                                        )}
-                                    </CardBody>
-                                </div>
-                            </Card>
-                        </Col>
-                    ))}
-                </Row>
-            </div>
+                                            />
+                                            <CardBody className="card-body">
+                                                <CardTitle
+                                                    className="wd-dashboard-course-title text-nowrap overflow-hidden"
+                                                    style={{
+                                                        cursor: isEnrolled || currentUser?.role === "FACULTY" ? 'pointer' : 'default'
+                                                    }}
+                                                    onClick={() => {
+                                                        if (isEnrolled || currentUser?.role === "FACULTY") {
+                                                            navigateToCourse(course._id);
+                                                        } else {
+                                                            alert("Please enroll in this course first to access it.");
+                                                        }
+                                                    }}
+                                                >
+                                                    {course.name}
+                                                </CardTitle>
+                                                <CardText className="wd-dashboard-course-description overflow-hidden" style={{ height: "100px" }}>
+                                                    {course.description}
+                                                </CardText>
+
+                                                {(isEnrolled || currentUser?.role === "FACULTY") && (
+                                                    <Button
+                                                        variant="primary"
+                                                        onClick={(e) => navigateToCourse(course._id, e)}
+                                                        disabled={isLoading}
+                                                    >
+                                                        Go
+                                                    </Button>
+                                                )}
+
+                                                {currentUser?.role === "FACULTY" && (
+                                                    <>
+                                                        <button
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                onDeleteCourse(course._id);
+                                                            }}
+                                                            className="btn btn-danger float-end"
+                                                            id="wd-delete-course-click"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                        <button
+                                                            id="wd-edit-course-click"
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                setCourse(course);
+                                                            }}
+                                                            className="btn btn-warning me-2 float-end"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                    </>
+                                                )}
+
+                                                {currentUser?.role !== "FACULTY" && showAllCourses && (
+                                                    <button
+                                                        onClick={(e) => handleEnrollment(e, course)}
+                                                        className={`btn float-end ${course.enrolled ? "btn-danger" : "btn-success"}`}
+                                                        disabled={isLoading}
+                                                    >
+                                                        {course.enrolled ? "Unenroll" : "Enroll"}
+                                                    </button>
+                                                )}
+                                            </CardBody>
+                                        </div>
+                                    </Card>
+                                </Col>
+                            );
+                        })}
+                    </Row>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,6 +1,6 @@
 /* eslint-disable */
 "use client"
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import LessonControlButtons from './LessonControlButtons';
 import ModulesControls from './ModulesControls';
 import ModuleControlButtons from './ModuleControlButtons';
@@ -15,6 +15,7 @@ import * as client from "../../client";
 
 export default function Modules() {
     const { cid } = useParams<{ cid: string }>();
+    const router = useRouter();
     const [moduleName, setModuleName] = useState("");
     const { modules } = useSelector((state: RootState) => state.modulesReducer);
     const { currentUser } = useSelector((state: RootState) => state.accountReducer);
@@ -25,26 +26,38 @@ export default function Modules() {
         const newModules = modules.map((m: any) => m._id === module._id ? module : m);
         dispatch(setModules(newModules));
     };
+
     const onRemoveModule = async (moduleId: string) => {
         await client.deleteModule(moduleId);
         dispatch(setModules(modules.filter((m: any) => m._id !== moduleId)));
     };
+
     const onCreateModuleForCourse = async () => {
         if (!cid) return;
         const newModule = { name: moduleName, course: cid };
         const module = await client.createModuleForCourse(cid, newModule);
         dispatch(setModules([...modules, module]));
+        setModuleName("");
     };
-
 
     const fetchModules = async () => {
-        const modules = await client.findModulesForCourse(cid as string);
-        dispatch(setModules(modules));
+        try {
+            const modules = await client.findModulesForCourse(cid as string);
+            dispatch(setModules(modules));
+        } catch (error) {
+            console.error("Error fetching modules:", error);
+        }
     };
-    useEffect(() => {
-        fetchModules();
-    }, []);
 
+    useEffect(() => {
+
+        if (!currentUser) {
+            router.push("/Account/Signin");
+            return;
+        }
+
+        fetchModules();
+    }, [cid, currentUser]);
 
     const isFaculty = currentUser?.role === "FACULTY";
 
@@ -72,8 +85,14 @@ export default function Modules() {
             />
             <br /><br /><br /><br />
             <ListGroup id="wd-modules" className="rounded-0">
-                {modules
-                    .map((module: any) => {
+                {modules.length === 0 ? (
+                    <ListGroupItem className="text-center p-5">
+                        <p className="text-muted mb-0">
+                            {isFaculty ? "No modules yet. Create your first module above." : "No modules available yet."}
+                        </p>
+                    </ListGroupItem>
+                ) : (
+                    modules.map((module: any) => {
                         const isExpanded = expandedModules.has(module._id);
                         return (
                             <ListGroupItem key={module._id} className="wd-module p-0 mb-5 fs-5 border-gray">
@@ -126,7 +145,8 @@ export default function Modules() {
                                                 variant="success"
                                                 size="sm"
                                                 className="me-2"
-                                                onClick={() => onUpdateModule({ ...module, editing: false })}                                            >
+                                                onClick={() => onUpdateModule({ ...module, editing: false })}
+                                            >
                                                 <FaCheck />
                                             </Button>
                                         </>
@@ -149,7 +169,8 @@ export default function Modules() {
                                 </Collapse>
                             </ListGroupItem>
                         );
-                    })}
+                    })
+                )}
             </ListGroup>
         </div>
     );
