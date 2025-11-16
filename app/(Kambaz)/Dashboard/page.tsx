@@ -113,14 +113,14 @@ export default function Dashboard() {
         <div id="wd-dashboard">
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h1 id="wd-dashboard-title" className="mb-0">Dashboard</h1>
-                {currentUser?.role !== "FACULTY" && (
-                    <Button
-                        onClick={() => setShowAllCourses(!showAllCourses)}
-                        disabled={isLoading}
-                    >
+
+                <Button
+                    onClick={() => setShowAllCourses(!showAllCourses)}
+                    disabled={isLoading}
+                >
                     Enrollments
-                    </Button>
-                )}
+                </Button>
+
             </div>
             <hr />
 
