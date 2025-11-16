@@ -40,10 +40,10 @@ export default function WorkingWithArrays() {
             <h3>Removing from an Array</h3>
             <a id="wd-remove-todo" className="btn btn-primary float-end" href={`${API}/${removeId}/delete`}>
                 Remove Todo with ID = {removeId} </a>
-            <FormControl id="wd-todo-id-remove" defaultValue={removeId} className="w-50" 
+            <FormControl id="wd-todo-id-remove" defaultValue={removeId} className="w-50"
                 onChange={(e) => setRemoveId(e.target.value)} /><hr />
             <h3>Updating an Item in an Array</h3>
-            <a href={`${API}/${updateId}/title/${updateTitle}`} className="btn btn-primary float-end">
+            <a href={`${API}/${updateId}/title/${encodeURIComponent(updateTitle)}`} className="btn btn-primary float-end">
                 Update Todo</a>
             <FormControl id="wd-todo-id-update" defaultValue={updateId} className="w-25 float-start me-2"
                 onChange={(e) => setUpdateId(e.target.value)} />
