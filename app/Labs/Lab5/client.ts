@@ -1,6 +1,33 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
+
 const HTTP_SERVER = process.env.NEXT_PUBLIC_HTTP_SERVER;
+
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+
+axios.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response && error.response.data) {
+            return Promise.reject(error);
+        } else if (error.request) {
+            error.response = {
+                data: {
+                    message: "Network error - server did not respond"
+                }
+            };
+            return Promise.reject(error);
+        } else {
+            error.response = {
+                data: {
+                    message: error.message || "An unexpected error occurred"
+                }
+            };
+            return Promise.reject(error);
+        }
+    }
+);
+
 export const fetchWelcomeMessage = async () => {
     const response = await axios.get(`${HTTP_SERVER}/lab5/welcome`);
     return response.data;
@@ -11,6 +38,7 @@ export const fetchAssignment = async () => {
     const response = await axios.get(`${ASSIGNMENT_API}`);
     return response.data;
 };
+
 export const updateTitle = async (title: string) => {
     const response = await axios.get(`${ASSIGNMENT_API}/title/${title}`);
     return response.data;
@@ -38,15 +66,33 @@ export const postNewTodo = async (todo: any) => {
 };
 
 export const deleteTodo = async (todo: any) => {
-    const response = await axios.delete(`${TODOS_API}/${todo.id}`);
-    return response.data;
+    try {
+        const response = await axios.delete(`${TODOS_API}/${todo.id}`);
+        return response.data;
+    } catch (error: any) {
+        if (!error.response) {
+            error.response = {
+                data: {
+                    message: `Unable to delete Todo with ID ${todo.id}`
+                }
+            };
+        }
+        throw error;
+    }
 };
 
 export const updateTodo = async (todo: any) => {
-    const response = await axios.put(`${TODOS_API}/${todo.id}`, todo);
-    return response.data;
+    try {
+        const response = await axios.put(`${TODOS_API}/${todo.id}`, todo);
+        return response.data;
+    } catch (error: any) {
+        if (!error.response) {
+            error.response = {
+                data: {
+                    message: `Unable to update Todo with ID ${todo.id}`
+                }
+            };
+        }
+        throw error;
+    }
 };
-
-
-
-
