@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useDispatch, useSelector } from "react-redux";
-import { addNewCourse, deleteCourse, updateCourse, setCourses } from "../Courses/reducer";
+import { setCourses } from "../Courses/reducer";
 import { RootState } from "../store";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as client from "../Courses/client";
 
@@ -41,7 +40,10 @@ export default function Dashboard() {
 
     const fetchCourses = async () => {
         try {
-            if (showAllCourses) {
+            if (currentUser?.role === "FACULTY") {
+                const allCourses = await client.fetchAllCourses();
+                dispatch(setCourses(allCourses));
+            } else if (showAllCourses) {
                 const allCourses = await client.fetchAllCourses();
                 dispatch(setCourses(allCourses));
             } else {
@@ -49,7 +51,8 @@ export default function Dashboard() {
                 dispatch(setCourses(enrolledCourses));
             }
         } catch (error) {
-            console.error(error);
+            console.error("Error fetching courses:", error);
+            alert("Failed to fetch courses. Please try refreshing the page.");
         }
     };
 
@@ -65,7 +68,6 @@ export default function Dashboard() {
         return null;
     }
 
-    // Function to handle course navigation
     const navigateToCourse = (courseId: string, e?: React.MouseEvent) => {
         if (e) {
             e.preventDefault();
@@ -167,12 +169,19 @@ export default function Dashboard() {
                                                 onClick={async (e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                    if (course.enrolled) {
-                                                        await client.unenrollFromCourse(currentUser._id, course._id);
-                                                    } else {
-                                                        await client.enrollInCourse(currentUser._id, course._id);
+                                                    try {
+                                                        if (course.enrolled) {
+                                                            await client.unenrollFromCourse(currentUser._id, course._id);
+                                                            console.log("Unenrolled from course:", course._id);
+                                                        } else {
+                                                            await client.enrollInCourse(currentUser._id, course._id);
+                                                            console.log("Enrolled in course:", course._id);
+                                                        }
+                                                        await fetchCourses();
+                                                    } catch (error: any) {
+                                                        console.error("Enrollment error:", error);
+                                                        alert(error.response?.data?.message || "Failed to update enrollment. Please try again.");
                                                     }
-                                                    fetchCourses();
                                                 }}
                                                 className={`btn float-end ${course.enrolled ? "btn-danger" : "btn-success"}`}
                                             >
