@@ -4,9 +4,10 @@ import { FaCalendarAlt } from 'react-icons/fa';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSelector, useDispatch } from "react-redux";
-import { addAssignment, updateAssignment } from "../reducer";
+import { addAssignment, updateAssignment, setAssignments } from "../reducer";
 import { RootState } from "../../../../store";
 import { useState, useEffect } from 'react';
+import * as client from "../client";
 
 export default function AssignmentEditor() {
     const { cid, aid } = useParams();
@@ -16,46 +17,50 @@ export default function AssignmentEditor() {
     const { currentUser } = useSelector((state: RootState) => state.accountReducer);
 
     const isNewAssignment = aid === 'new';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existingAssignment = isNewAssignment ? null : assignments.find((a: any) => a._id === aid);
 
-    const [assignment, setAssignment] = useState(() => {
-        if (existingAssignment) {
-            return existingAssignment;
-        }
-        return {
-            title: "",
-            description: "",
-            points: 100,
-            dueDate: "2024-05-13",
-            availableDate: "2024-05-06",
-            untilDate: "2024-05-20",
-            course: cid,
-        };
+    const [assignment, setAssignment] = useState({
+        _id: "",
+        title: "",
+        description: "",
+        points: 100,
+        dueDate: "2024-05-13",
+        availableDate: "2024-05-06",
+        untilDate: "2024-05-20",
+        course: cid,
     });
 
     useEffect(() => {
-        if (!isNewAssignment) {
-            if (existingAssignment) {
-                // Update state when existing assignment is found
-                setAssignment(existingAssignment);
-            } else {
-                // Assignment not found, redirect back
-                router.push(`/Courses/${cid}/Assignments`);
+        const fetchAssignment = async () => {
+            if (!isNewAssignment) {
+                try {
+                    const fetchedAssignment = await client.findAssignmentById(aid as string);
+                    setAssignment(fetchedAssignment);
+                } catch (error) {
+                    console.error("Error fetching assignment:", error);
+                    router.push(`/Courses/${cid}/Assignments`);
+                }
             }
-        }
-    }, [isNewAssignment, existingAssignment, cid, router]);
+        };
+        fetchAssignment();
+    }, [aid, isNewAssignment, cid, router]);
 
-    const handleSave = () => {
-        if (isNewAssignment) {
-            dispatch(addAssignment(assignment));
-        } else {
-            dispatch(updateAssignment(assignment));
+    const handleSave = async () => {
+        try {
+            if (isNewAssignment) {
+                const newAssignment = await client.createAssignmentForCourse(cid as string, assignment);
+                dispatch(addAssignment(newAssignment));
+            } else {
+                const updatedAssignment = await client.updateAssignment(assignment);
+                dispatch(updateAssignment(updatedAssignment));
+            }
+            router.push(`/Courses/${cid}/Assignments`);
+        } catch (error) {
+            console.error("Error saving assignment:", error);
         }
-        router.push(`/Courses/${cid}/Assignments`);
     };
 
     const isFaculty = currentUser?.role === "FACULTY";
+
     if (!isFaculty && isNewAssignment) {
         router.push(`/Courses/${cid}/Assignments`);
         return null;
@@ -69,7 +74,7 @@ export default function AssignmentEditor() {
                     <Form.Control
                         type="text"
                         id="wd-name"
-                        value={assignment.title}
+                        value={assignment.title || ""}
                         onChange={(e) => setAssignment({ ...assignment, title: e.target.value })}
                         disabled={!isFaculty}
                     />
@@ -80,7 +85,7 @@ export default function AssignmentEditor() {
                         as="textarea"
                         rows={12}
                         id="wd-description"
-                        value={assignment.description}
+                        value={assignment.description || ""}
                         onChange={(e) => setAssignment({ ...assignment, description: e.target.value })}
                         style={{ resize: 'none' }}
                         disabled={!isFaculty}
@@ -114,7 +119,7 @@ export default function AssignmentEditor() {
                                     <Form.Control
                                         type="date"
                                         id="wd-due-date"
-                                        value={assignment.dueDate}
+                                        value={assignment.dueDate || ""}
                                         onChange={(e) => setAssignment({ ...assignment, dueDate: e.target.value })}
                                         disabled={!isFaculty}
                                     />
@@ -134,7 +139,7 @@ export default function AssignmentEditor() {
                                             <Form.Control
                                                 type="date"
                                                 id="wd-available-from"
-                                                value={assignment.availableDate}
+                                                value={assignment.availableDate || ""}
                                                 onChange={(e) => setAssignment({ ...assignment, availableDate: e.target.value })}
                                                 disabled={!isFaculty}
                                             />
@@ -151,7 +156,7 @@ export default function AssignmentEditor() {
                                             <Form.Control
                                                 type="date"
                                                 id="wd-available-until"
-                                                value={assignment.untilDate}
+                                                value={assignment.untilDate || ""}
                                                 onChange={(e) => setAssignment({ ...assignment, untilDate: e.target.value })}
                                                 disabled={!isFaculty}
                                             />
