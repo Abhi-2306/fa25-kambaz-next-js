@@ -9,10 +9,11 @@ export default function AccountNavigation() {
     const { currentUser } = useSelector((state: RootState) => state.accountReducer);
     const links = currentUser ? ["Profile"] : ["Signin", "Signup"];
     const pathname = usePathname();
+    const allLinks = currentUser?.role === "ADMIN" ? [...links, "Users"] : links;
 
     return (
         <Nav className="flex-column">
-            {links.map((link) => (
+            {allLinks.map((link) => (
                 <NavItem key={link} className="position-relative d-flex">
                     {pathname.toLowerCase().includes(link.toLowerCase()) && (
                         <div
