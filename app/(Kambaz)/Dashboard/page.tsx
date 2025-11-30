@@ -48,7 +48,7 @@ export default function Dashboard() {
                 const allCourses = await client.fetchAllCourses();
                 dispatch(setCourses(allCourses));
             } else if (showAllCourses) {
-                const allCourses = await client.fetchAllCourses();
+                const allCourses = await client.fetchAllCoursesWithEnrollmentStatus();
                 dispatch(setCourses(allCourses));
             } else {
                 const enrolledCourses = await client.findMyCourses();
@@ -92,7 +92,7 @@ export default function Dashboard() {
                 await client.unenrollFromCourse(currentUser._id, course._id);
                 alert("Successfully unenrolled from " + course.name);
             } else {
-                await client.enrollInCourse(currentUser._id, course._id);
+                await client.enrollIntoCourse(currentUser._id, course._id);
                 alert("Successfully enrolled in " + course.name + "! You can now access the course.");
             }
 
