@@ -15,7 +15,7 @@ export default function PeopleDetails({ uid, onClose }: { uid: string | null; on
         if (!uid) return;
         const user = await client.findUserById(uid);
         setUser(user);
-        setName(`${user.firstName} ${user.lastName}`);
+        setName(`${user.firstName || ""} ${user.lastName || ""}`.trim());
     };
 
     const deleteUser = async (uid: string) => {
@@ -24,7 +24,10 @@ export default function PeopleDetails({ uid, onClose }: { uid: string | null; on
     };
 
     const saveUser = async () => {
-        const [firstName, lastName] = name.split(" ");
+        const nameParts = name.trim().split(" ");
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ");  // Removed || user.lastName || ""
+
         const updatedUser = { ...user, firstName, lastName };
         await client.updateUser(updatedUser);
         setUser(updatedUser);
@@ -75,7 +78,7 @@ export default function PeopleDetails({ uid, onClose }: { uid: string | null; on
                 {user && editing && (
                     <FormControl
                         className="w-50 wd-edit-name"
-                        defaultValue={`${user.firstName} ${user.lastName}`}
+                        value={name}
                         onChange={(e) => setName(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
