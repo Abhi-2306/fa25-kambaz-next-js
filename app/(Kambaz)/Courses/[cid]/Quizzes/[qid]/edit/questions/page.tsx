@@ -196,7 +196,7 @@ export default function QuestionsEditor() {
 
   const handleCancel = () => {
     if (confirm("Discard unsaved changes?")) {
-      router.push(`/Kambaz/Courses/${cid}/Quizzes/${qid}/edit`);
+      router.push(`/Courses/${cid}/Quizzes/${qid}/edit`);
     }
   };
 
@@ -217,10 +217,10 @@ export default function QuestionsEditor() {
       <nav aria-label="breadcrumb">
         <ol className="breadcrumb">
           <li className="breadcrumb-item">
-            <Link href={`/Kambaz/Courses/${cid}/Quizzes`}>Quizzes</Link>
+            <Link href={`/Courses/${cid}/Quizzes`}>Quizzes</Link>
           </li>
           <li className="breadcrumb-item">
-            <Link href={`/Kambaz/Courses/${cid}/Quizzes/${qid}/edit`}>{quiz.title}</Link>
+            <Link href={`/Courses/${cid}/Quizzes/${qid}/edit`}>{quiz.title}</Link>
           </li>
           <li className="breadcrumb-item active">Questions</li>
         </ol>
@@ -243,7 +243,7 @@ export default function QuestionsEditor() {
         <li className="nav-item">
           <Link
             className="nav-link"
-            href={`/Kambaz/Courses/${cid}/Quizzes/${qid}/edit`}
+            href={`/Courses/${cid}/Quizzes/${qid}/edit`}
           >
             Details
           </Link>
@@ -473,7 +473,7 @@ export default function QuestionsEditor() {
         </button>
         <div>
           <Link
-            href={`/Kambaz/Courses/${cid}/Quizzes/${qid}/preview`}
+            href={`/Courses/${cid}/Quizzes/${qid}/preview`}
             className="btn btn-outline-primary me-2"
           >
             Preview

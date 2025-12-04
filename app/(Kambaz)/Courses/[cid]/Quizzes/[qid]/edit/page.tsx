@@ -87,7 +87,7 @@ export default function QuizEditor() {
         </li>
         <li className="nav-item">
           <Link
-            href={`/Kambaz/Courses/${cid}/Quizzes/${qid}/edit/questions`}
+            href={`/Courses/${cid}/Quizzes/${qid}/edit/questions`}
             className="nav-link"
           >
             Questions

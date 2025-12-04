@@ -164,7 +164,7 @@ export default function QuizList() {
                 <IoRocketOutline className="me-3 text-success" />
                 <div>
                   <Link
-                    href={`/Kambaz/Courses/${cid}/Quizzes/${quiz._id}`}
+                    href={`/Courses/${cid}/Quizzes/${quiz._id}`}
                     className="fw-bold text-decoration-none"
                   >
                     {quiz.title}
