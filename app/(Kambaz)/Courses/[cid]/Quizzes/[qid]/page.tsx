@@ -51,13 +51,13 @@ export default function QuizDetails() {
         {isFaculty && (
           <>
             <Link
-              href={`/Kambaz/Courses/${cid}/Quizzes/${qid}/preview`}
+              href={`/Courses/${cid}/Quizzes/${qid}/preview`}
               className="btn btn-secondary"
             >
               Preview
             </Link>
             <Link
-              href={`/Kambaz/Courses/${cid}/Quizzes/${qid}/edit`}
+              href={`/Courses/${cid}/Quizzes/${qid}/edit`}
               className="btn btn-secondary"
             >
               <FaEdit className="me-2" />
@@ -67,7 +67,7 @@ export default function QuizDetails() {
         )}
         {!isFaculty && quiz.published && (
           <Link
-            href={`/Kambaz/Courses/${cid}/Quizzes/${qid}/take`}
+            href={`/Courses/${cid}/Quizzes/${qid}/take`}
             className="btn btn-danger"
           >
             Start Quiz

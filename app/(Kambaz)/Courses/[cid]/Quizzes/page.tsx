@@ -56,7 +56,7 @@ export default function QuizList() {
         published: false,
         questions: [],
       });
-      router.push(`/Kambaz/Courses/${cid}/Quizzes/${newQuiz._id}/edit`);
+      router.push(`/Courses/${cid}/Quizzes/${newQuiz._id}/edit`);
     } catch (error) {
       console.error("Error creating quiz:", error);
     }
@@ -214,7 +214,7 @@ export default function QuizList() {
                       <Dropdown.Item
                         onClick={() =>
                           router.push(
-                            `/Kambaz/Courses/${cid}/Quizzes/${quiz._id}/edit`
+                            `/Courses/${cid}/Quizzes/${quiz._id}/edit`
                           )
                         }
                       >

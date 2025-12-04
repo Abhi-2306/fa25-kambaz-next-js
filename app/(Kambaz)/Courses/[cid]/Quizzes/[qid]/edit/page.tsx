@@ -36,7 +36,7 @@ export default function QuizEditor() {
     setSaving(true);
     try {
       await client.updateQuiz(qid as string, quiz);
-      router.push(`/Kambaz/Courses/${cid}/Quizzes/${qid}`);
+      router.push(`/Courses/${cid}/Quizzes/${qid}`);
     } catch (error) {
       console.error("Error saving quiz:", error);
     } finally {
@@ -48,7 +48,7 @@ export default function QuizEditor() {
     setSaving(true);
     try {
       await client.updateQuiz(qid as string, { ...quiz, published: true });
-      router.push(`/Kambaz/Courses/${cid}/Quizzes`);
+      router.push(`/Courses/${cid}/Quizzes`);
     } catch (error) {
       console.error("Error saving quiz:", error);
     } finally {
@@ -57,7 +57,7 @@ export default function QuizEditor() {
   };
 
   const handleCancel = () => {
-    router.push(`/Kambaz/Courses/${cid}/Quizzes`);
+    router.push(`/Courses/${cid}/Quizzes`);
   };
 
   if (loading) {
