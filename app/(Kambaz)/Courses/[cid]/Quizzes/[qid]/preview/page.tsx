@@ -242,7 +242,7 @@ export default function QuizPreview() {
                     <button className="btn btn-danger me-2" onClick={handleSubmit}>
                         Submit Quiz
                     </button>
-                    <Link href={`/Kambaz/Courses/${cid}/Quizzes/${qid}/edit`} className="btn btn-secondary">
+                    <Link href={`/Courses/${cid}/Quizzes/${qid}/edit`} className="btn btn-secondary">
                         Keep Editing This Quiz
                     </Link>
                 </div>

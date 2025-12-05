@@ -318,7 +318,7 @@ export default function TakeQuiz() {
                     )}
                     <button
                         className="btn btn-secondary"
-                        onClick={() => router.push(`/Kambaz/Courses/${cid}/Quizzes`)}
+                        onClick={() => router.push(`/Courses/${cid}/Quizzes`)}
                     >
                         Back to Quizzes
                     </button>
