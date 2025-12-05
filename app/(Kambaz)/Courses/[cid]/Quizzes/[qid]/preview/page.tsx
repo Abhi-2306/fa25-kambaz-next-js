@@ -233,7 +233,7 @@ export default function QuizPreview() {
                     <button className="btn btn-secondary me-2" onClick={resetPreview}>
                         Try Again
                     </button>
-                    <Link href={`/Kambaz/Courses/${cid}/Quizzes/${qid}/edit`} className="btn btn-primary">
+                    <Link href={`/Courses/${cid}/Quizzes/${qid}/edit`} className="btn btn-primary">
                         Edit Quiz
                     </Link>
                 </div>

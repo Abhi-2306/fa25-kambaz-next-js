@@ -330,7 +330,7 @@ export default function TakeQuiz() {
                     </button>
                     <button
                         className="btn btn-secondary"
-                        onClick={() => router.push(`/Kambaz/Courses/${cid}/Quizzes`)}
+                        onClick={() => router.push(`/Courses/${cid}/Quizzes`)}
                     >
                         Cancel
                     </button>
