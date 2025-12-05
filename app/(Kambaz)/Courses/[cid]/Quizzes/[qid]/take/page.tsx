@@ -1,6 +1,7 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import * as client from "../../client";
@@ -18,6 +19,12 @@ export default function TakeQuiz() {
     const [score, setScore] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    
+    // Timer states
+    const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+    const [timerStarted, setTimerStarted] = useState(false);
+    const [quizStartTime, setQuizStartTime] = useState<Date | null>(null);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -51,7 +58,17 @@ export default function TakeQuiz() {
                             restoredAnswers[a.questionId] = a.answer;
                         });
                         setAnswers(restoredAnswers);
+                    } else if (quizData.timeLimit && quizData.timeLimit > 0) {
+                        // Set initial time if quiz has time limit and not submitted
+                        setTimeRemaining(quizData.timeLimit * 60); // Convert minutes to seconds
+                        setTimerStarted(true); // Start timer immediately
+                        setQuizStartTime(new Date()); // Record quiz start time
                     }
+                } else if (quizData.timeLimit && quizData.timeLimit > 0) {
+                    // Set initial time for first attempt
+                    setTimeRemaining(quizData.timeLimit * 60); // Convert minutes to seconds
+                    setTimerStarted(true); // Start timer immediately
+                    setQuizStartTime(new Date()); // Record quiz start time
                 }
             } catch (error) {
                 console.error("Error fetching quiz:", error);
@@ -62,6 +79,49 @@ export default function TakeQuiz() {
         };
         fetchData();
     }, [qid]);
+
+    // Timer countdown effect - simplified since timer starts immediately
+    useEffect(() => {
+        if (timeRemaining !== null && timeRemaining > 0 && !submitted) {
+            intervalRef.current = setInterval(() => {
+                setTimeRemaining((prev) => {
+                    if (prev === null || prev <= 1) {
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            return () => {
+                if (intervalRef.current) {
+                    clearInterval(intervalRef.current);
+                }
+            };
+        }
+    }, [timeRemaining, submitted]);
+
+    // Auto-submit when time runs out
+    useEffect(() => {
+        if (timeRemaining === 0 && !submitted) {
+            handleSubmit(true); // Pass true to indicate auto-submit due to timeout
+        }
+    }, [timeRemaining, submitted]);
+
+    // Format time for display
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Get timer color based on remaining time
+    const getTimerColor = () => {
+        if (!timeRemaining || !quiz?.timeLimit) return "";
+        const percentRemaining = (timeRemaining / (quiz.timeLimit * 60)) * 100;
+        if (percentRemaining <= 10) return "text-danger";
+        if (percentRemaining <= 25) return "text-warning";
+        return "text-primary";
+    };
 
     const handleAnswerChange = (questionId: string, answer: any) => {
         setAnswers({ ...answers, [questionId]: answer });
@@ -105,8 +165,13 @@ export default function TakeQuiz() {
         return totalScore;
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (isAutoSubmit = false) => {
         try {
+            // Stop the timer
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+
             const finalScore = calculateScore();
 
             const attemptData = {
@@ -115,6 +180,9 @@ export default function TakeQuiz() {
                     answer,
                 })),
                 score: finalScore,
+                timeUsed: quiz.timeLimit && quizStartTime ? 
+                    Math.floor((Date.now() - quizStartTime.getTime()) / 1000 / 60) : undefined,
+                autoSubmitted: isAutoSubmit
             };
 
             const newAttempt = await client.submitAttempt(qid as string, attemptData);
@@ -122,6 +190,10 @@ export default function TakeQuiz() {
             setScore(finalScore);
             setSubmitted(true);
             setAttemptCount(attemptCount + 1);
+            
+            if (isAutoSubmit) {
+                alert("Time's up! Your quiz has been automatically submitted.");
+            }
         } catch (error: any) {
             console.error("Error submitting attempt:", error);
             setError(error.response?.data?.message || "Failed to submit quiz");
@@ -160,6 +232,12 @@ export default function TakeQuiz() {
         setAnswers({});
         setSubmitted(false);
         setScore(0);
+        setTimerStarted(true); // Timer starts immediately on retake
+        setQuizStartTime(new Date()); // Reset start time
+        // Reset timer for retake
+        if (quiz.timeLimit && quiz.timeLimit > 0) {
+            setTimeRemaining(quiz.timeLimit * 60);
+        }
     };
 
     if (loading) {
@@ -201,10 +279,28 @@ export default function TakeQuiz() {
             {quiz.description && <p className="text-muted">{quiz.description}</p>}
 
             <div className="mb-3">
-                <strong>Points:</strong> {quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) || 0} |                <strong> Questions:</strong> {quiz.questions?.length || 0} |
-                <strong> Time Limit:</strong> {quiz.timeLimit} minutes |
+                <strong>Points:</strong> {quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) || 0} | 
+                <strong> Questions:</strong> {quiz.questions?.length || 0} |
+                <strong> Time Limit:</strong> {quiz.timeLimit ? `${quiz.timeLimit} minutes` : 'None'} |
                 <strong> Attempts:</strong> {attemptCount} / {quiz.multipleAttempts ? quiz.howManyAttempts : 1}
             </div>
+
+            {/* Timer Display */}
+            {timeRemaining !== null && !submitted && (
+                <div className={`alert ${timeRemaining <= 60 ? 'alert-danger' : timeRemaining <= 300 ? 'alert-warning' : 'alert-info'} position-sticky top-0`} style={{ zIndex: 100 }}>
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Time Remaining: </strong>
+                            <span className={`fs-5 ${getTimerColor()}`}>
+                                {formatTime(timeRemaining)}
+                            </span>
+                        </div>
+                        {timeRemaining <= 60 && (
+                            <span className="badge bg-danger animate-pulse">Less than 1 minute remaining!</span>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <hr />
 
@@ -349,12 +445,17 @@ export default function TakeQuiz() {
                 </div>
             ) : (
                 <div className="mb-4">
-                    <button className="btn btn-danger me-2" onClick={handleSubmit}>
+                    <button className="btn btn-danger me-2" onClick={() => handleSubmit(false)}>
                         Submit Quiz
                     </button>
                     <button
                         className="btn btn-secondary"
-                        onClick={() => router.push(`/Courses/${cid}/Quizzes`)}
+                        onClick={() => {
+                            if (timeRemaining !== null && timeRemaining > 0 && !window.confirm("Are you sure you want to leave? Your progress and remaining time will be lost.")) {
+                                return;
+                            }
+                            router.push(`/Courses/${cid}/Quizzes`);
+                        }}
                     >
                         Cancel
                     </button>
