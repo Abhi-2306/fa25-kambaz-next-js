@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import * as client from "../../../client";
-import { FaPlus, FaTrash, FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { FaPlus, FaTrash, FaArrowUp, FaArrowDown, FaEdit } from "react-icons/fa";
 
 export default function QuestionsEditor() {
   const { cid, qid } = useParams();
@@ -13,7 +13,9 @@ export default function QuestionsEditor() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [editingQuestions, setEditingQuestions] = useState<Set<string>>(new Set());
+  const [originalQuestions, setOriginalQuestions] = useState<Record<string, any>>({});
+  const [newQuestionType, setNewQuestionType] = useState<"multiple-choice" | "true-false" | "fill-blank">("multiple-choice");
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -21,8 +23,6 @@ export default function QuestionsEditor() {
         const data = await client.findQuizById(qid as string);
         setQuiz(data);
         setQuestions(data.questions || []);
-        const allIds = new Set<string>(data.questions?.map((q: any) => q._id) || []);
-        setExpandedQuestions(allIds);
       } catch (error) {
         console.error("Error fetching quiz:", error);
       } finally {
@@ -36,6 +36,87 @@ export default function QuestionsEditor() {
     return `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   };
 
+  // Add a new blank to a fill-blank question
+  const addBlank = (questionId: string) => {
+    setQuestions(
+      questions.map((q) => {
+        if (q._id === questionId && q.type === "fill-blank") {
+          const currentBlanks = q.blanks || [{ possibleAnswers: q.possibleAnswers || [""] }];
+          return { ...q, blanks: [...currentBlanks, { possibleAnswers: [""] }] };
+        }
+        return q;
+      })
+    );
+  };
+
+  // Delete a blank from a fill-blank question
+  const deleteBlank = (questionId: string, blankIndex: number) => {
+    setQuestions(
+      questions.map((q) => {
+        if (q._id === questionId && q.type === "fill-blank") {
+          const newBlanks = (q.blanks || []).filter((_: any, i: number) => i !== blankIndex);
+          return { ...q, blanks: newBlanks.length > 0 ? newBlanks : [{ possibleAnswers: [""] }] };
+        }
+        return q;
+      })
+    );
+  };
+
+  // Update an answer within a specific blank
+  const updateBlankAnswer = (questionId: string, blankIndex: number, answerIndex: number, value: string) => {
+    setQuestions(
+      questions.map((q) => {
+        if (q._id === questionId && q.type === "fill-blank") {
+          const newBlanks = [...(q.blanks || [{ possibleAnswers: q.possibleAnswers || [""] }])];
+          newBlanks[blankIndex] = {
+            ...newBlanks[blankIndex],
+            possibleAnswers: newBlanks[blankIndex].possibleAnswers.map((a: string, i: number) =>
+              i === answerIndex ? value : a
+            ),
+          };
+          return { ...q, blanks: newBlanks };
+        }
+        return q;
+      })
+    );
+  };
+
+  // Add a new accepted answer to a specific blank
+  const addBlankAnswer = (questionId: string, blankIndex: number) => {
+    setQuestions(
+      questions.map((q) => {
+        if (q._id === questionId && q.type === "fill-blank") {
+          const newBlanks = [...(q.blanks || [{ possibleAnswers: q.possibleAnswers || [""] }])];
+          newBlanks[blankIndex] = {
+            ...newBlanks[blankIndex],
+            possibleAnswers: [...newBlanks[blankIndex].possibleAnswers, ""],
+          };
+          return { ...q, blanks: newBlanks };
+        }
+        return q;
+      })
+    );
+  };
+
+  const deleteBlankAnswer = (questionId: string, blankIndex: number, answerIndex: number) => {
+    setQuestions(
+      questions.map((q) => {
+        if (q._id === questionId && q.type === "fill-blank") {
+          const newBlanks = [...(q.blanks || [])];
+          const newAnswers = newBlanks[blankIndex].possibleAnswers.filter(
+            (_: string, i: number) => i !== answerIndex
+          );
+          newBlanks[blankIndex] = {
+            ...newBlanks[blankIndex],
+            possibleAnswers: newAnswers.length > 0 ? newAnswers : [""],
+          };
+          return { ...q, blanks: newBlanks };
+        }
+        return q;
+      })
+    );
+  };
+
   const addQuestion = (type: "multiple-choice" | "true-false" | "fill-blank") => {
     const newQuestion: any = {
       _id: generateQuestionId(),
@@ -45,7 +126,6 @@ export default function QuestionsEditor() {
       question: "",
     };
 
-    // Set defaults based on type
     if (type === "multiple-choice") {
       newQuestion.choices = [
         { text: "Option 1", isCorrect: true },
@@ -56,13 +136,63 @@ export default function QuestionsEditor() {
     } else if (type === "true-false") {
       newQuestion.correctAnswer = true;
     } else if (type === "fill-blank") {
-      newQuestion.possibleAnswers = [""];
+      newQuestion.blanks = [{ possibleAnswers: [""] }];
     }
 
-    const updatedQuestions = [...questions, newQuestion];
-    setQuestions(updatedQuestions);
-    
-    setExpandedQuestions((prev) => new Set([...prev, newQuestion._id]));
+    setQuestions([...questions, newQuestion]);
+  };
+
+  const deepCopyQuestion = (question: any) => {
+    return {
+      ...question,
+      choices: question.choices ? question.choices.map((c: any) => ({ ...c })) : undefined,
+      possibleAnswers: question.possibleAnswers ? [...question.possibleAnswers] : undefined,
+      blanks: question.blanks ? question.blanks.map((b: any) => ({
+        possibleAnswers: [...b.possibleAnswers]
+      })) : undefined,
+    };
+  };
+
+  // Start editing - save original
+  const startEditing = (question: any) => {
+    setOriginalQuestions((prev) => ({
+      ...prev,
+      [question._id]: deepCopyQuestion(question),
+    }));
+    setEditingQuestions((prev) => new Set([...prev, question._id]));
+  };
+
+  // Cancel editing - restore original
+  const cancelEditing = (questionId: string) => {
+    if (originalQuestions[questionId]) {
+      setQuestions(questions.map((q) =>
+        q._id === questionId ? originalQuestions[questionId] : q
+      ));
+    }
+    setEditingQuestions((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(questionId);
+      return newSet;
+    });
+    setOriginalQuestions((prev) => {
+      const newOriginals = { ...prev };
+      delete newOriginals[questionId];
+      return newOriginals;
+    });
+  };
+
+  // Save/Update question - exit edit mode, keep changes
+  const saveQuestion = (questionId: string) => {
+    setEditingQuestions((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(questionId);
+      return newSet;
+    });
+    setOriginalQuestions((prev) => {
+      const newOriginals = { ...prev };
+      delete newOriginals[questionId];
+      return newOriginals;
+    });
   };
 
   const updateQuestion = (id: string, updates: any) => {
@@ -71,6 +201,11 @@ export default function QuestionsEditor() {
 
   const deleteQuestion = (id: string) => {
     setQuestions(questions.filter((q) => q._id !== id));
+    setEditingQuestions((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
   };
 
   const moveQuestion = (index: number, direction: "up" | "down") => {
@@ -89,14 +224,13 @@ export default function QuestionsEditor() {
         if (q._id === questionId && q.type === "multiple-choice") {
           const newChoices = [...q.choices];
           newChoices[choiceIndex] = { ...newChoices[choiceIndex], ...updates };
-          
-          // If setting this as correct, unset others
+
           if (updates.isCorrect) {
             newChoices.forEach((c, i) => {
               if (i !== choiceIndex) c.isCorrect = false;
             });
           }
-          
+
           return { ...q, choices: newChoices };
         }
         return q;
@@ -121,7 +255,6 @@ export default function QuestionsEditor() {
       questions.map((q) => {
         if (q._id === questionId && q.type === "multiple-choice") {
           const newChoices = q.choices.filter((_: any, i: number) => i !== choiceIndex);
-          // Ensure at least one correct answer
           if (!newChoices.some((c: any) => c.isCorrect) && newChoices.length > 0) {
             newChoices[0].isCorrect = true;
           }
@@ -168,24 +301,28 @@ export default function QuestionsEditor() {
     );
   };
 
-  const toggleQuestion = (id: string) => {
-    setExpandedQuestions((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updatedQuiz = { ...quiz, questions };
+      const totalPoints = questions.reduce((sum, q) => sum + (q.points || 0), 0);
+      const updatedQuiz = { ...quiz, questions, points: totalPoints };
       await client.updateQuiz(qid as string, updatedQuiz);
-      alert("Questions saved successfully!");
+      router.push(`/Courses/${cid}/Quizzes/${qid}`);
+    } catch (error) {
+      console.error("Error saving questions:", error);
+      alert("Failed to save questions");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveAndPublish = async () => {
+    setSaving(true);
+    try {
+      const totalPoints = questions.reduce((sum, q) => sum + (q.points || 0), 0);
+      const updatedQuiz = { ...quiz, questions, points: totalPoints, published: true };
+      await client.updateQuiz(qid as string, updatedQuiz);
+      router.push(`/Courses/${cid}/Quizzes`);
     } catch (error) {
       console.error("Error saving questions:", error);
       alert("Failed to save questions");
@@ -196,12 +333,27 @@ export default function QuestionsEditor() {
 
   const handleCancel = () => {
     if (confirm("Discard unsaved changes?")) {
-      router.push(`/Courses/${cid}/Quizzes/${qid}/edit`);
+      router.push(`/Courses/${cid}/Quizzes`);
     }
   };
 
   const calculateTotalPoints = () => {
     return questions.reduce((sum, q) => sum + (q.points || 0), 0);
+  };
+
+  const getQuestionPreview = (question: any) => {
+    if (question.type === "multiple-choice") {
+      const correctChoice = question.choices?.find((c: any) => c.isCorrect);
+      return `Correct answer: ${correctChoice?.text || "Not set"}`;
+    } else if (question.type === "true-false") {
+      return `Correct answer: ${question.correctAnswer ? "True" : "False"}`;
+    } else if (question.type === "fill-blank") {
+      const blanks = question.blanks || [{ possibleAnswers: question.possibleAnswers || [] }];
+      return blanks.map((b: any, i: number) =>
+        `Blank ${i + 1}: ${b.possibleAnswers.join(", ") || "Not set"}`
+      ).join(" | ");
+    }
+    return "";
   };
 
   if (loading) {
@@ -241,10 +393,7 @@ export default function QuestionsEditor() {
       {/* Tabs */}
       <ul className="nav nav-tabs mb-3">
         <li className="nav-item">
-          <Link
-            className="nav-link"
-            href={`/Courses/${cid}/Quizzes/${qid}/edit`}
-          >
+          <Link className="nav-link" href={`/Courses/${cid}/Quizzes/${qid}/edit`}>
             Details
           </Link>
         </li>
@@ -253,32 +402,33 @@ export default function QuestionsEditor() {
         </li>
       </ul>
 
-      {/* Add Question Buttons - Simplified without dropdown */}
-      <div className="mb-3">
-        <button className="btn btn-success me-2" onClick={() => addQuestion("multiple-choice")}>
-          <FaPlus className="me-1" /> Multiple Choice
-        </button>
-        <button className="btn btn-success me-2" onClick={() => addQuestion("true-false")}>
-          <FaPlus className="me-1" /> True/False
-        </button>
-        <button className="btn btn-success" onClick={() => addQuestion("fill-blank")}>
-          <FaPlus className="me-1" /> Fill in Blank
+      {/* Add Question */}
+      <div className="mb-3 d-flex align-items-center gap-2">
+        <select
+          className="form-select"
+          style={{ width: "200px" }}
+          value={newQuestionType}
+          onChange={(e) => setNewQuestionType(e.target.value as any)}
+        >
+          <option value="multiple-choice">Multiple Choice</option>
+          <option value="true-false">True/False</option>
+          <option value="fill-blank">Fill in the Blank</option>
+        </select>
+        <button className="btn btn-success" onClick={() => addQuestion(newQuestionType)}>
+          <FaPlus className="me-1" /> New Question
         </button>
       </div>
 
       {/* Questions List */}
       {questions.length === 0 ? (
         <div className="alert alert-info">
-          No questions yet. Click a button above to add one.
+          No questions yet. Select a question type and click <strong>+ New Question</strong> to add one.
         </div>
       ) : (
         questions.map((question, index) => (
           <div key={question._id} className="card mb-3">
-            <div
-              className="card-header d-flex justify-content-between align-items-center"
-              style={{ cursor: "pointer" }}
-              onClick={() => toggleQuestion(question._id)}
-            >
+            {/* Header */}
+            <div className="card-header d-flex justify-content-between align-items-center">
               <div>
                 <strong>Question {index + 1}</strong>
                 <span className="badge bg-secondary ms-2">
@@ -289,28 +439,21 @@ export default function QuestionsEditor() {
               <div className="btn-group btn-group-sm">
                 <button
                   className="btn btn-outline-secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    moveQuestion(index, "up");
-                  }}
+                  onClick={() => moveQuestion(index, "up")}
                   disabled={index === 0}
                 >
                   <FaArrowUp />
                 </button>
                 <button
                   className="btn btn-outline-secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    moveQuestion(index, "down");
-                  }}
+                  onClick={() => moveQuestion(index, "down")}
                   disabled={index === questions.length - 1}
                 >
                   <FaArrowDown />
                 </button>
                 <button
                   className="btn btn-outline-danger"
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={() => {
                     if (confirm("Delete this question?")) {
                       deleteQuestion(question._id);
                     }
@@ -321,9 +464,26 @@ export default function QuestionsEditor() {
               </div>
             </div>
 
-            {expandedQuestions.has(question._id) && (
+            {/* Preview Mode */}
+            {!editingQuestions.has(question._id) && (
               <div className="card-body">
-                {/* Question Title */}
+                <p className="fw-bold mb-1">{question.title}</p>
+                {question.question && (
+                  <div className="text-muted mb-2" dangerouslySetInnerHTML={{ __html: question.question }} />
+                )}
+                <p className="text-muted small mb-2">{getQuestionPreview(question)}</p>
+                <button
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={() => startEditing(question)}
+                >
+                  <FaEdit className="me-1" /> Edit
+                </button>
+              </div>
+            )}
+
+            {/* Edit Mode */}
+            {editingQuestions.has(question._id) && (
+              <div className="card-body">
                 <div className="mb-3">
                   <label className="form-label">Question Title</label>
                   <input
@@ -334,7 +494,6 @@ export default function QuestionsEditor() {
                   />
                 </div>
 
-                {/* Question Content */}
                 <div className="mb-3">
                   <label className="form-label">Question</label>
                   <textarea
@@ -346,7 +505,6 @@ export default function QuestionsEditor() {
                   />
                 </div>
 
-                {/* Points */}
                 <div className="mb-3">
                   <label className="form-label">Points</label>
                   <input
@@ -361,7 +519,7 @@ export default function QuestionsEditor() {
                   />
                 </div>
 
-                {/* Type-specific editors */}
+                {/* Multiple Choice */}
                 {question.type === "multiple-choice" && (
                   <div>
                     <label className="form-label">Choices</label>
@@ -379,9 +537,7 @@ export default function QuestionsEditor() {
                           type="text"
                           className="form-control"
                           value={choice.text}
-                          onChange={(e) =>
-                            updateChoice(question._id, i, { text: e.target.value })
-                          }
+                          onChange={(e) => updateChoice(question._id, i, { text: e.target.value })}
                         />
                         <button
                           className="btn btn-outline-danger"
@@ -401,6 +557,7 @@ export default function QuestionsEditor() {
                   </div>
                 )}
 
+                {/* True/False */}
                 {question.type === "true-false" && (
                   <div>
                     <label className="form-label">Correct Answer</label>
@@ -431,35 +588,76 @@ export default function QuestionsEditor() {
 
                 {question.type === "fill-blank" && (
                   <div>
-                    <label className="form-label">Possible Answers</label>
-                    {question.possibleAnswers.map((answer: string, i: number) => (
-                      <div key={i} className="input-group mb-2">
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={answer}
-                          onChange={(e) =>
-                            updatePossibleAnswer(question._id, i, e.target.value)
-                          }
-                          placeholder="Enter an accepted answer"
-                        />
+                    <label className="form-label">Blanks</label>
+                    <small className="text-muted d-block mb-2">
+                      Each blank can have multiple accepted answers. Use [BLANK1], [BLANK2], etc. in your question text.
+                    </small>
+
+                    {(question.blanks || [{ possibleAnswers: [""] }]).map((blank: any, blankIndex: number) => (
+                      <div key={blankIndex} className="card mb-3 p-3 bg-light">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <strong>Blank {blankIndex + 1}</strong>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => deleteBlank(question._id, blankIndex)}
+                            disabled={(question.blanks || []).length <= 1}
+                          >
+                            <FaTrash /> Remove Blank
+                          </button>
+                        </div>
+
+                        <label className="form-label">Accepted Answers for Blank {blankIndex + 1}</label>
+                        {blank.possibleAnswers.map((answer: string, answerIndex: number) => (
+                          <div key={answerIndex} className="input-group mb-2">
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={answer}
+                              onChange={(e) => updateBlankAnswer(question._id, blankIndex, answerIndex, e.target.value)}
+                              placeholder={`Accepted answer ${answerIndex + 1}`}
+                            />
+                            <button
+                              className="btn btn-outline-danger"
+                              onClick={() => deleteBlankAnswer(question._id, blankIndex, answerIndex)}
+                              disabled={blank.possibleAnswers.length <= 1}
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+                        ))}
                         <button
-                          className="btn btn-outline-danger"
-                          onClick={() => deletePossibleAnswer(question._id, i)}
-                          disabled={question.possibleAnswers.length <= 1}
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => addBlankAnswer(question._id, blankIndex)}
                         >
-                          <FaTrash />
+                          <FaPlus /> Add Accepted Answer
                         </button>
                       </div>
                     ))}
+
                     <button
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => addPossibleAnswer(question._id)}
+                      className="btn btn-outline-success"
+                      onClick={() => addBlank(question._id)}
                     >
-                      <FaPlus /> Add Answer
+                      <FaPlus /> Add Another Blank
                     </button>
                   </div>
                 )}
+
+                <hr />
+                <div className="d-flex gap-2">
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => cancelEditing(question._id)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => saveQuestion(question._id)}
+                  >
+                    Update Question
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -478,7 +676,14 @@ export default function QuestionsEditor() {
           >
             Preview
           </Link>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          <button
+            className="btn btn-success me-2"
+            onClick={handleSaveAndPublish}
+            disabled={saving}
+          >
+            Save & Publish
+          </button>
+          <button className="btn btn-danger" onClick={handleSave} disabled={saving}>
             {saving ? "Saving..." : "Save"}
           </button>
         </div>

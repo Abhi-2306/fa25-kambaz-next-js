@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -31,6 +30,15 @@ export default function QuizDetails() {
     fetchQuiz();
   }, [qid]);
 
+  const handlePublishToggle = async () => {
+    try {
+      await client.updateQuiz(qid as string, { published: !quiz.published });
+      setQuiz({ ...quiz, published: !quiz.published });
+    } catch (error) {
+      console.error("Error updating quiz:", error);
+    }
+  };
+
   if (loading) {
     return <div className="container mt-4">Loading quiz details...</div>;
   }
@@ -44,12 +52,20 @@ export default function QuizDetails() {
     return new Date(date).toLocaleString();
   };
 
+  const totalPoints = quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) || 0;
+
   return (
     <div className="container mt-4">
       {/* Action Buttons */}
       <div className="d-flex justify-content-center mb-4 gap-2">
         {isFaculty && (
           <>
+            <button
+              className={`btn ${quiz.published ? "btn-warning" : "btn-success"}`}
+              onClick={handlePublishToggle}
+            >
+              {quiz.published ? "Unpublish" : "Publish"}
+            </button>
             <Link
               href={`/Courses/${cid}/Quizzes/${qid}/preview`}
               className="btn btn-secondary"
@@ -93,7 +109,7 @@ export default function QuizDetails() {
               </tr>
               <tr>
                 <td className="text-end fw-bold">Points</td>
-                <td>{quiz.points}</td>
+                <td>{totalPoints}</td>
               </tr>
               <tr>
                 <td className="text-end fw-bold">Assignment Group</td>

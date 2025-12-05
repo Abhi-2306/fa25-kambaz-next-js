@@ -84,10 +84,19 @@ export default function TakeQuiz() {
                     totalScore += question.points;
                 }
             } else if (question.type === "fill-blank") {
-                const isCorrect = question.possibleAnswers.some(
-                    (ans: string) => ans.toLowerCase().trim() === userAnswer?.toLowerCase().trim()
-                );
-                if (isCorrect) {
+                const blanks = question.blanks || [{ possibleAnswers: question.possibleAnswers || [] }];
+                const userAnswers = answers[question._id] || [];
+
+                let allCorrect = true;
+                blanks.forEach((blank: any, index: number) => {
+                    const userAnswer = userAnswers[index] || "";
+                    const isCorrect = blank.possibleAnswers.some(
+                        (ans: string) => ans.toLowerCase().trim() === userAnswer.toLowerCase().trim()
+                    );
+                    if (!isCorrect) allCorrect = false;
+                });
+
+                if (allCorrect) {
                     totalScore += question.points;
                 }
             }
@@ -128,9 +137,15 @@ export default function TakeQuiz() {
         } else if (question.type === "true-false") {
             return userAnswer === question.correctAnswer;
         } else if (question.type === "fill-blank") {
-            return question.possibleAnswers.some(
-                (ans: string) => ans.toLowerCase().trim() === userAnswer?.toLowerCase().trim()
-            );
+            const blanks = question.blanks || [{ possibleAnswers: question.possibleAnswers || [] }];
+            const userAnswers = answers[question._id] || [];
+
+            return blanks.every((blank: any, index: number) => {
+                const userAnswer = userAnswers[index] || "";
+                return blank.possibleAnswers.some(
+                    (ans: string) => ans.toLowerCase().trim() === userAnswer.toLowerCase().trim()
+                );
+            });
         }
         return false;
     };
@@ -186,8 +201,7 @@ export default function TakeQuiz() {
             {quiz.description && <p className="text-muted">{quiz.description}</p>}
 
             <div className="mb-3">
-                <strong>Points:</strong> {quiz.points} |
-                <strong> Questions:</strong> {quiz.questions?.length || 0} |
+                <strong>Points:</strong> {quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) || 0} |                <strong> Questions:</strong> {quiz.questions?.length || 0} |
                 <strong> Time Limit:</strong> {quiz.timeLimit} minutes |
                 <strong> Attempts:</strong> {attemptCount} / {quiz.multipleAttempts ? quiz.howManyAttempts : 1}
             </div>
@@ -274,22 +288,32 @@ export default function TakeQuiz() {
                             </div>
                         )}
 
-                        {/* Fill in the Blank */}
+                        {/* Fill in the Blank - Multiple Blanks */}
                         {question.type === "fill-blank" && (
                             <div className="mt-3">
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Type your answer"
-                                    value={answers[question._id] || ""}
-                                    onChange={(e) => handleAnswerChange(question._id, e.target.value)}
-                                    disabled={submitted}
-                                />
-                                {submitted && quiz.showCorrectAnswers && (
-                                    <small className="text-muted">
-                                        Accepted answers: {question.possibleAnswers.join(", ")}
-                                    </small>
-                                )}
+                                {(question.blanks || [{ possibleAnswers: question.possibleAnswers || [] }]).map((blank: any, blankIndex: number) => (
+                                    <div key={blankIndex} className="mb-3">
+                                        <label className="form-label">Blank {blankIndex + 1}</label>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder={`Answer for blank ${blankIndex + 1}`}
+                                            value={answers[question._id]?.[blankIndex] || ""}
+                                            onChange={(e) => {
+                                                const currentAnswers = answers[question._id] || [];
+                                                const newAnswers = [...currentAnswers];
+                                                newAnswers[blankIndex] = e.target.value;
+                                                handleAnswerChange(question._id, newAnswers);
+                                            }}
+                                            disabled={submitted}
+                                        />
+                                        {submitted && quiz.showCorrectAnswers && (
+                                            <small className="text-muted">
+                                                Accepted: {blank.possibleAnswers.join(", ")}
+                                            </small>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         )}
 

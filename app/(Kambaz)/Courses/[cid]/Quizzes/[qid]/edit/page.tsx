@@ -32,10 +32,36 @@ export default function QuizEditor() {
     setQuiz({ ...quiz, [field]: value });
   };
 
+  const validateDates = () => {
+    const availableDate = quiz.availableDate ? new Date(quiz.availableDate) : null;
+    const dueDate = quiz.dueDate ? new Date(quiz.dueDate) : null;
+    const untilDate = quiz.untilDate ? new Date(quiz.untilDate) : null;
+
+    if (availableDate && untilDate && availableDate > untilDate) {
+      alert("'Available From' date must be before 'Until' date");
+      return false;
+    }
+
+    if (availableDate && dueDate && availableDate > dueDate) {
+      alert("'Available From' date must be before or equal to 'Due Date'");
+      return false;
+    }
+
+    if (dueDate && untilDate && dueDate > untilDate) {
+      alert("'Due Date' must be before or equal to 'Until' date");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSave = async () => {
+    if (!validateDates()) return;
+
     setSaving(true);
     try {
-      await client.updateQuiz(qid as string, quiz);
+      const totalPoints = quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) || 0;
+      await client.updateQuiz(qid as string, { ...quiz, points: totalPoints });
       router.push(`/Courses/${cid}/Quizzes/${qid}`);
     } catch (error) {
       console.error("Error saving quiz:", error);
@@ -45,9 +71,12 @@ export default function QuizEditor() {
   };
 
   const handleSaveAndPublish = async () => {
+    if (!validateDates()) return;
+
     setSaving(true);
     try {
-      await client.updateQuiz(qid as string, { ...quiz, published: true });
+      const totalPoints = quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) || 0;
+      await client.updateQuiz(qid as string, { ...quiz, points: totalPoints, published: true });
       router.push(`/Courses/${cid}/Quizzes`);
     } catch (error) {
       console.error("Error saving quiz:", error);

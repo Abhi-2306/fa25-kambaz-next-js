@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -14,7 +13,7 @@ import * as client from "../Quizzes/client";
 export default function QuizList() {
   const { cid } = useParams();
   const router = useRouter();
- 
+
   const { currentUser } = useSelector((state: any) => state.accountReducer);
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +124,16 @@ export default function QuizList() {
     ? quizzes
     : quizzes.filter((q) => q.published);
 
+  const sortedQuizzes = [...visibleQuizzes].sort((a, b) => {
+    const dateA = a.availableDate ? new Date(a.availableDate).getTime() : 0;
+    const dateB = b.availableDate ? new Date(b.availableDate).getTime() : 0;
+
+    if (dateA === 0 && dateB === 0) return 0;
+    if (dateA === 0) return -1;
+    if (dateB === 0) return 1;
+    return dateA - dateB;
+  });
+
   return (
     <div className="container-fluid">
       {/* Header */}
@@ -151,10 +160,12 @@ export default function QuizList() {
           <strong>Assignment Quizzes</strong>
         </li>
 
-        {visibleQuizzes.length === 0 ? (
-          <li className="list-group-item text-muted">No quizzes available</li>
+        {sortedQuizzes.length === 0 ? (
+          <li className="list-group-item text-muted">
+            No quizzes yet. Click <strong>+ Quiz</strong> button to add a quiz.
+          </li>
         ) : (
-          visibleQuizzes.map((quiz) => (
+          sortedQuizzes.map((quiz) => (
             <li
               key={quiz._id}
               className="list-group-item d-flex justify-content-between align-items-center"
@@ -213,9 +224,7 @@ export default function QuizList() {
                     <Dropdown.Menu>
                       <Dropdown.Item
                         onClick={() =>
-                          router.push(
-                            `/Courses/${cid}/Quizzes/${quiz._id}/edit`
-                          )
+                          router.push(`/Courses/${cid}/Quizzes/${quiz._id}/edit`)
                         }
                       >
                         <FaEdit className="me-2" /> Edit
