@@ -119,7 +119,6 @@ export default function QuizList() {
     return <div>Loading quizzes...</div>;
   }
 
-  // Filter quizzes for students — only show published
   const visibleQuizzes = isFaculty
     ? quizzes
     : quizzes.filter((q) => q.published);
@@ -136,7 +135,6 @@ export default function QuizList() {
 
   return (
     <div className="container-fluid">
-      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <input
           type="text"
@@ -153,7 +151,6 @@ export default function QuizList() {
 
       <hr />
 
-      {/* Quiz List */}
       <ul className="list-group">
         <li className="list-group-item bg-light d-flex align-items-center">
           <BsGripVertical className="me-2" />
@@ -195,7 +192,6 @@ export default function QuizList() {
               </div>
 
               <div className="d-flex align-items-center">
-                {/* Publish status */}
                 {isFaculty && (
                   <span
                     className="me-3"
@@ -211,7 +207,6 @@ export default function QuizList() {
                   </span>
                 )}
 
-                {/* Context menu */}
                 {isFaculty && (
                   <Dropdown>
                     <Dropdown.Toggle

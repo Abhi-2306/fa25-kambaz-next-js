@@ -134,8 +134,7 @@ export default function QuizPreview() {
 
             <hr />
 
-            <div className="row">
-                {/* Main Question Area */}
+            <div className="row"> 
                 <div className="col-md-9">
                     {!submitted && currentQuestion && (
                         <div className="card mb-3">
@@ -147,7 +146,6 @@ export default function QuizPreview() {
                                 <p className="card-text fw-bold">{currentQuestion.title}</p>
                                 <div dangerouslySetInnerHTML={{ __html: currentQuestion.question }} />
 
-                                {/* Multiple Choice */}
                                 {currentQuestion.type === "multiple-choice" && (
                                     <div className="mt-3">
                                         {currentQuestion.choices.map((choice: any, i: number) => (
@@ -168,7 +166,6 @@ export default function QuizPreview() {
                                     </div>
                                 )}
 
-                                {/* True/False */}
                                 {currentQuestion.type === "true-false" && (
                                     <div className="mt-3">
                                         <div className="form-check">
@@ -200,7 +197,6 @@ export default function QuizPreview() {
                                     </div>
                                 )}
 
-                                {/* Fill in the Blank - Multiple Blanks */}
                                 {currentQuestion.type === "fill-blank" && (
                                     <div className="mt-3">
                                         {(currentQuestion.blanks || [{ possibleAnswers: currentQuestion.possibleAnswers || [] }]).map((blank: any, blankIndex: number) => (
@@ -230,7 +226,6 @@ export default function QuizPreview() {
                                 )}
                             </div>
 
-                            {/* Navigation Buttons */}
                             <div className="card-footer d-flex justify-content-between">
                                 <button
                                     className="btn btn-secondary"
@@ -255,7 +250,6 @@ export default function QuizPreview() {
                         </div>
                     )}
 
-                    {/* Results after submission */}
                     {submitted && (
                         <div>
                             <div className="alert alert-info">
@@ -290,7 +284,6 @@ export default function QuizPreview() {
                     )}
                 </div>
 
-                {/* Question Navigation Sidebar */}
                 <div className="col-md-3">
                     <div className="card">
                         <div className="card-header">

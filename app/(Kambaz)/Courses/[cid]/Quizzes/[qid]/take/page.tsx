@@ -20,7 +20,6 @@ export default function TakeQuiz() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     
-    // Timer states
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
     const [timerStarted, setTimerStarted] = useState(false);
     const [quizStartTime, setQuizStartTime] = useState<Date | null>(null);
@@ -32,7 +31,6 @@ export default function TakeQuiz() {
                 const quizData = await client.findQuizById(qid as string);
                 setQuiz(quizData);
 
-                // Get previous attempts
                 const attempts = await client.getAttempts(qid as string);
                 setAttemptCount(attempts.length);
 
@@ -40,11 +38,9 @@ export default function TakeQuiz() {
                     const latest = await client.getLatestAttempt(qid as string);
                     setLatestAttempt(latest);
 
-                    // Check if user can still take the quiz
                     if (!quizData.multipleAttempts && attempts.length > 0) {
                         setSubmitted(true);
                         setScore(latest.score);
-                        // Restore answers from latest attempt
                         const restoredAnswers: Record<string, any> = {};
                         latest.answers.forEach((a: any) => {
                             restoredAnswers[a.questionId] = a.answer;
@@ -59,16 +55,14 @@ export default function TakeQuiz() {
                         });
                         setAnswers(restoredAnswers);
                     } else if (quizData.timeLimit && quizData.timeLimit > 0) {
-                        // Set initial time if quiz has time limit and not submitted
-                        setTimeRemaining(quizData.timeLimit * 60); // Convert minutes to seconds
-                        setTimerStarted(true); // Start timer immediately
-                        setQuizStartTime(new Date()); // Record quiz start time
+                        setTimeRemaining(quizData.timeLimit * 60); 
+                        setTimerStarted(true); 
+                        setQuizStartTime(new Date()); 
                     }
-                } else if (quizData.timeLimit && quizData.timeLimit > 0) {
-                    // Set initial time for first attempt
-                    setTimeRemaining(quizData.timeLimit * 60); // Convert minutes to seconds
-                    setTimerStarted(true); // Start timer immediately
-                    setQuizStartTime(new Date()); // Record quiz start time
+                } else if (quizData.timeLimit && quizData.timeLimit > 0) { 
+                    setTimeRemaining(quizData.timeLimit * 60);
+                    setTimerStarted(true);
+                    setQuizStartTime(new Date());
                 }
             } catch (error) {
                 console.error("Error fetching quiz:", error);
@@ -80,7 +74,6 @@ export default function TakeQuiz() {
         fetchData();
     }, [qid]);
 
-    // Timer countdown effect - simplified since timer starts immediately
     useEffect(() => {
         if (timeRemaining !== null && timeRemaining > 0 && !submitted) {
             intervalRef.current = setInterval(() => {
@@ -100,21 +93,17 @@ export default function TakeQuiz() {
         }
     }, [timeRemaining, submitted]);
 
-    // Auto-submit when time runs out
     useEffect(() => {
         if (timeRemaining === 0 && !submitted) {
-            handleSubmit(true); // Pass true to indicate auto-submit due to timeout
+            handleSubmit(true);
         }
     }, [timeRemaining, submitted]);
-
-    // Format time for display
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // Get timer color based on remaining time
     const getTimerColor = () => {
         if (!timeRemaining || !quiz?.timeLimit) return "";
         const percentRemaining = (timeRemaining / (quiz.timeLimit * 60)) * 100;
@@ -167,7 +156,6 @@ export default function TakeQuiz() {
 
     const handleSubmit = async (isAutoSubmit = false) => {
         try {
-            // Stop the timer
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
@@ -232,9 +220,8 @@ export default function TakeQuiz() {
         setAnswers({});
         setSubmitted(false);
         setScore(0);
-        setTimerStarted(true); // Timer starts immediately on retake
-        setQuizStartTime(new Date()); // Reset start time
-        // Reset timer for retake
+        setTimerStarted(true);
+        setQuizStartTime(new Date());
         if (quiz.timeLimit && quiz.timeLimit > 0) {
             setTimeRemaining(quiz.timeLimit * 60);
         }
@@ -252,7 +239,6 @@ export default function TakeQuiz() {
         return <div className="container mt-4">Quiz not found</div>;
     }
 
-    // Check if quiz is available
     const now = new Date();
     const availableDate = quiz.availableDate ? new Date(quiz.availableDate) : null;
     const untilDate = quiz.untilDate ? new Date(quiz.untilDate) : null;
@@ -285,7 +271,6 @@ export default function TakeQuiz() {
                 <strong> Attempts:</strong> {attemptCount} / {quiz.multipleAttempts ? quiz.howManyAttempts : 1}
             </div>
 
-            {/* Timer Display */}
             {timeRemaining !== null && !submitted && (
                 <div className={`alert ${timeRemaining <= 60 ? 'alert-danger' : timeRemaining <= 300 ? 'alert-warning' : 'alert-info'} position-sticky top-0`} style={{ zIndex: 100 }}>
                     <div className="d-flex justify-content-between align-items-center">
@@ -317,8 +302,6 @@ export default function TakeQuiz() {
                     <div className="card-body">
                         <p className="card-text">{question.title}</p>
                         <div dangerouslySetInnerHTML={{ __html: question.question }} />
-
-                        {/* Multiple Choice */}
                         {question.type === "multiple-choice" && (
                             <div className="mt-3">
                                 {question.choices.map((choice: any, i: number) => (
@@ -343,8 +326,6 @@ export default function TakeQuiz() {
                                 ))}
                             </div>
                         )}
-
-                        {/* True/False */}
                         {question.type === "true-false" && (
                             <div className="mt-3">
                                 <div className="form-check">
@@ -383,8 +364,6 @@ export default function TakeQuiz() {
                                 </div>
                             </div>
                         )}
-
-                        {/* Fill in the Blank - Multiple Blanks */}
                         {question.type === "fill-blank" && (
                             <div className="mt-3">
                                 {(question.blanks || [{ possibleAnswers: question.possibleAnswers || [] }]).map((blank: any, blankIndex: number) => (
@@ -413,7 +392,6 @@ export default function TakeQuiz() {
                             </div>
                         )}
 
-                        {/* Show result after submit */}
                         {submitted && (
                             <div className={`mt-2 ${isCorrect(question) ? "text-success" : "text-danger"}`}>
                                 {isCorrect(question) ? "✓ Correct" : "✗ Incorrect"}

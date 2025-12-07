@@ -56,7 +56,6 @@ export default function QuizDetails() {
 
   return (
     <div className="container mt-4">
-      {/* Action Buttons */}
       <div className="d-flex justify-content-center mb-4 gap-2">
         {isFaculty && (
           <>
@@ -93,10 +92,7 @@ export default function QuizDetails() {
 
       <hr />
 
-      {/* Quiz Title */}
       <h2>{quiz.title}</h2>
-
-      {/* Quiz Details Table */}
       <div className="row mt-4">
         <div className="col-md-8">
           <table className="table">
@@ -157,8 +153,6 @@ export default function QuizDetails() {
               </tr>
             </tbody>
           </table>
-
-          {/* Dates */}
           <table className="table mt-4">
             <thead>
               <tr>
@@ -175,8 +169,6 @@ export default function QuizDetails() {
               </tr>
             </tbody>
           </table>
-
-          {/* Questions Summary */}
           <div className="mt-4">
             <h5>Questions: {quiz.questions?.length || 0}</h5>
             {quiz.questions?.length > 0 && (

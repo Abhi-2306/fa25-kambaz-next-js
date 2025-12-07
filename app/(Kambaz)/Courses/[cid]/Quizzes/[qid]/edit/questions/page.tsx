@@ -36,7 +36,6 @@ export default function QuestionsEditor() {
     return `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   };
 
-  // Add a new blank to a fill-blank question
   const addBlank = (questionId: string) => {
     setQuestions(
       questions.map((q) => {
@@ -49,7 +48,6 @@ export default function QuestionsEditor() {
     );
   };
 
-  // Delete a blank from a fill-blank question
   const deleteBlank = (questionId: string, blankIndex: number) => {
     setQuestions(
       questions.map((q) => {
@@ -62,7 +60,6 @@ export default function QuestionsEditor() {
     );
   };
 
-  // Update an answer within a specific blank
   const updateBlankAnswer = (questionId: string, blankIndex: number, answerIndex: number, value: string) => {
     setQuestions(
       questions.map((q) => {
@@ -81,7 +78,6 @@ export default function QuestionsEditor() {
     );
   };
 
-  // Add a new accepted answer to a specific blank
   const addBlankAnswer = (questionId: string, blankIndex: number) => {
     setQuestions(
       questions.map((q) => {
@@ -153,7 +149,6 @@ export default function QuestionsEditor() {
     };
   };
 
-  // Start editing - save original
   const startEditing = (question: any) => {
     setOriginalQuestions((prev) => ({
       ...prev,
@@ -181,7 +176,6 @@ export default function QuestionsEditor() {
     });
   };
 
-  // Save/Update question - exit edit mode, keep changes
   const saveQuestion = (questionId: string) => {
     setEditingQuestions((prev) => {
       const newSet = new Set(prev);
@@ -390,7 +384,6 @@ export default function QuestionsEditor() {
         </div>
       </div>
 
-      {/* Tabs */}
       <ul className="nav nav-tabs mb-3">
         <li className="nav-item">
           <Link className="nav-link" href={`/Courses/${cid}/Quizzes/${qid}/edit`}>
@@ -402,7 +395,6 @@ export default function QuestionsEditor() {
         </li>
       </ul>
 
-      {/* Add Question */}
       <div className="mb-3 d-flex align-items-center gap-2">
         <select
           className="form-select"
@@ -419,15 +411,13 @@ export default function QuestionsEditor() {
         </button>
       </div>
 
-      {/* Questions List */}
       {questions.length === 0 ? (
         <div className="alert alert-info">
           No questions yet. Select a question type and click <strong>+ New Question</strong> to add one.
         </div>
       ) : (
         questions.map((question, index) => (
-          <div key={question._id} className="card mb-3">
-            {/* Header */}
+          <div key={question._id} className="card mb-3"> 
             <div className="card-header d-flex justify-content-between align-items-center">
               <div>
                 <strong>Question {index + 1}</strong>
@@ -464,7 +454,6 @@ export default function QuestionsEditor() {
               </div>
             </div>
 
-            {/* Preview Mode */}
             {!editingQuestions.has(question._id) && (
               <div className="card-body">
                 <p className="fw-bold mb-1">{question.title}</p>
@@ -481,7 +470,6 @@ export default function QuestionsEditor() {
               </div>
             )}
 
-            {/* Edit Mode */}
             {editingQuestions.has(question._id) && (
               <div className="card-body">
                 <div className="mb-3">
@@ -519,7 +507,6 @@ export default function QuestionsEditor() {
                   />
                 </div>
 
-                {/* Multiple Choice */}
                 {question.type === "multiple-choice" && (
                   <div>
                     <label className="form-label">Choices</label>
@@ -557,7 +544,6 @@ export default function QuestionsEditor() {
                   </div>
                 )}
 
-                {/* True/False */}
                 {question.type === "true-false" && (
                   <div>
                     <label className="form-label">Correct Answer</label>
@@ -664,7 +650,6 @@ export default function QuestionsEditor() {
         ))
       )}
 
-      {/* Action Buttons */}
       <div className="d-flex justify-content-between mt-4">
         <button className="btn btn-secondary" onClick={handleCancel}>
           Cancel

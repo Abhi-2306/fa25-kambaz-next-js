@@ -97,14 +97,12 @@ export default function QuizEditor() {
     return <div className="container mt-4">Quiz not found</div>;
   }
 
-  // Calculate total points from questions
   const totalPoints =
     quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) ||
     0;
 
   return (
     <div className="container mt-4">
-      {/* Tabs */}
       <ul className="nav nav-tabs mb-4">
         <li className="nav-item">
           <button
@@ -124,10 +122,8 @@ export default function QuizEditor() {
         </li>
       </ul>
 
-      {/* Details Tab Content */}
       {activeTab === "details" && (
         <div>
-          {/* Title */}
           <div className="mb-3">
             <input
               type="text"
@@ -137,8 +133,6 @@ export default function QuizEditor() {
               placeholder="Quiz Title"
             />
           </div>
-
-          {/* Description */}
           <div className="mb-3">
             <label className="form-label">Quiz Instructions</label>
             <textarea
@@ -150,7 +144,6 @@ export default function QuizEditor() {
             />
           </div>
 
-          {/* Quiz Type */}
           <div className="row mb-3">
             <div className="col-md-3 text-end">
               <label className="form-label">Quiz Type</label>
@@ -188,7 +181,6 @@ export default function QuizEditor() {
             </div>
           </div>
 
-          {/* Points Display */}
           <div className="row mb-3">
             <div className="col-md-3 text-end">
               <label className="form-label">Points</label>
@@ -206,13 +198,11 @@ export default function QuizEditor() {
             </div>
           </div>
 
-          {/* Options Section */}
           <div className="row mb-3">
             <div className="col-md-3 text-end">
               <label className="form-label">Options</label>
             </div>
             <div className="col-md-6">
-              {/* Shuffle Answers */}
               <div className="form-check mb-2">
                 <input
                   type="checkbox"
@@ -228,7 +218,6 @@ export default function QuizEditor() {
                 </label>
               </div>
 
-              {/* Time Limit */}
               <div className="d-flex align-items-center mb-2">
                 <input
                   type="checkbox"
@@ -258,7 +247,6 @@ export default function QuizEditor() {
                 )}
               </div>
 
-              {/* Multiple Attempts */}
               <div className="form-check mb-2">
                 <input
                   type="checkbox"
@@ -293,7 +281,6 @@ export default function QuizEditor() {
                 </div>
               )}
 
-              {/* Show Correct Answers */}
               <div className="mb-2">
                 <label className="form-label">Show Correct Answers</label>
                 <select
@@ -309,7 +296,6 @@ export default function QuizEditor() {
                 </select>
               </div>
 
-              {/* Access Code */}
               <div className="mb-2">
                 <label className="form-label">Access Code</label>
                 <input
@@ -321,7 +307,6 @@ export default function QuizEditor() {
                 />
               </div>
 
-              {/* One Question at a Time */}
               <div className="form-check mb-2">
                 <input
                   type="checkbox"
@@ -340,7 +325,6 @@ export default function QuizEditor() {
                 </label>
               </div>
 
-              {/* Webcam Required */}
               <div className="form-check mb-2">
                 <input
                   type="checkbox"
@@ -356,7 +340,6 @@ export default function QuizEditor() {
                 </label>
               </div>
 
-              {/* Lock Questions After Answering */}
               <div className="form-check mb-2">
                 <input
                   type="checkbox"
@@ -377,7 +360,6 @@ export default function QuizEditor() {
             </div>
           </div>
 
-          {/* Dates Section */}
           <div className="row mb-3">
             <div className="col-md-3 text-end">
               <label className="form-label">Due Date</label>
@@ -446,10 +428,8 @@ export default function QuizEditor() {
               />
             </div>
           </div>
-
           <hr />
 
-          {/* Action Buttons */}
           <div className="d-flex justify-content-end gap-2 mb-4">
             <button className="btn btn-secondary" onClick={handleCancel}>
               Cancel
