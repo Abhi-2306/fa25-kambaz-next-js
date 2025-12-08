@@ -18,19 +18,13 @@ export default function TakeQuiz() {
     const [score, setScore] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    
-    // Question navigation state (only for one-question-at-a-time mode)
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [visitedQuestions, setVisitedQuestions] = useState<Set<number>>(new Set([0]));
     const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set());
-    
-    // Timer state
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
     const [timerStarted, setTimerStarted] = useState(false);
     const [quizStartTime, setQuizStartTime] = useState<Date | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    
-    // Access code state
     const [accessCodeVerified, setAccessCodeVerified] = useState(false);
     const [enteredAccessCode, setEnteredAccessCode] = useState("");
 
@@ -124,7 +118,6 @@ export default function TakeQuiz() {
 
     const handleAnswerChange = (questionId: string, answer: any) => {
         setAnswers({ ...answers, [questionId]: answer });
-        // Track answered questions for lock mode
         const questionIndex = quiz.questions.findIndex((q: any) => q._id === questionId);
         if (questionIndex !== -1) {
             setAnsweredQuestions(prev => new Set([...prev, questionIndex]));
@@ -256,12 +249,11 @@ export default function TakeQuiz() {
 
     const navigateToQuestion = (index: number) => {
         if (quiz.lockQuestionsAfterAnswering) {
-            // Lock mode: Can only navigate to previously answered questions or the next unanswered
             const canNavigate = 
-                index <= currentQuestionIndex || // Can go back
-                answeredQuestions.has(index) || // Can visit answered questions
+                index <= currentQuestionIndex ||
+                answeredQuestions.has(index) ||
                 index === Math.min(...Array.from({length: quiz.questions.length}, (_, i) => i)
-                    .filter(i => !answeredQuestions.has(i))); // Can go to next unanswered
+                    .filter(i => !answeredQuestions.has(i)));
             
             if (!canNavigate) {
                 return;
@@ -341,7 +333,6 @@ export default function TakeQuiz() {
         );
     }
 
-    // Check if access code is required but not verified
     if (quiz.accessCode && !accessCodeVerified && !submitted) {
         return (
             <div className="container mt-4">
@@ -405,11 +396,9 @@ export default function TakeQuiz() {
     const currentQuestion = quiz.questions?.[currentQuestionIndex];
     const totalPoints = quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) || 0;
 
-    // One question at a time view with timer and navigation
     if (quiz.oneQuestionAtATime && currentQuestion) {
         return (
             <div className="container-fluid mt-4">
-                {/* Timer Bar - Always visible at top */}
                 {timeRemaining !== null && !submitted && (
                     <div className={`alert ${timeRemaining <= 60 ? 'alert-danger' : timeRemaining <= 300 ? 'alert-warning' : 'alert-info'} mb-3`}>
                         <div className="d-flex justify-content-between align-items-center">
@@ -428,7 +417,6 @@ export default function TakeQuiz() {
                 )}
 
                 <div className="row">
-                    {/* Main Quiz Content */}
                     <div className="col-md-9">
                         <div className="card">
                             <div className="card-header">
@@ -444,7 +432,6 @@ export default function TakeQuiz() {
                                         <h5 className="mb-3">{currentQuestion.title}</h5>
                                         <div dangerouslySetInnerHTML={{ __html: currentQuestion.question }} className="mb-4" />
 
-                                        {/* Question Content Based on Type */}
                                         {currentQuestion.type === "multiple-choice" && (
                                             <div className="mt-3">
                                                 {currentQuestion.choices.map((choice: any, i: number) => (
@@ -523,7 +510,6 @@ export default function TakeQuiz() {
                                             </div>
                                         )}
 
-                                        {/* Navigation Buttons */}
                                         <hr className="my-4" />
                                         <div className="d-flex justify-content-between">
                                             <button
@@ -556,7 +542,6 @@ export default function TakeQuiz() {
                                         </div>
                                     </>
                                 ) : (
-                                    /* Results View for One Question Mode */
                                     <div>
                                         <div className="alert alert-info mb-4">
                                             <h4>Quiz Completed!</h4>
@@ -643,7 +628,6 @@ export default function TakeQuiz() {
                         </div>
                     </div>
 
-                    {/* Side Navigation Panel */}
                     <div className="col-md-3">
                         <div className="card position-sticky" style={{ top: "20px" }}>
                             <div className="card-header">
@@ -691,7 +675,6 @@ export default function TakeQuiz() {
                                     })}
                                 </div>
                                 
-                                {/* Legend */}
                                 <div className="small text-muted">
                                     <div className="mb-1">⬜ Not Visited</div>
                                     <div className="mb-1">🟨 Visited</div>
@@ -706,8 +689,6 @@ export default function TakeQuiz() {
                                         </>
                                     )}
                                 </div>
-
-                                {/* Quick Submit Button */}
                                 {!submitted && (
                                     <div className="mt-3">
                                         <div className="d-grid">
@@ -732,8 +713,6 @@ export default function TakeQuiz() {
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Progress Info */}
                                 <div className="mt-3 text-center">
                                     <small className="text-muted">
                                         {Object.keys(answers).length} of {quiz.questions.length} answered
@@ -755,7 +734,6 @@ export default function TakeQuiz() {
         );
     }
 
-    // Regular view (all questions at once) - keeping your original implementation with timer
     return (
         <div className="container mt-4">
             <h2>{quiz.title}</h2>
