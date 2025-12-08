@@ -676,7 +676,6 @@ export default function TakeQuiz() {
                                 </div>
                                 
                                 <div className="small text-muted">
-                                    <div className="mb-1">⬜ Not Visited</div>
                                     <div className="mb-1">🟨 Visited</div>
                                     <div className="mb-1">🔵 Answered</div>
                                     {quiz.lockQuestionsAfterAnswering && (
