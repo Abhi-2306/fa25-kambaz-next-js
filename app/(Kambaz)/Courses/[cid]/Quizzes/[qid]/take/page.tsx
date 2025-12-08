@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -20,10 +19,20 @@ export default function TakeQuiz() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     
+    // Question navigation state (only for one-question-at-a-time mode)
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [visitedQuestions, setVisitedQuestions] = useState<Set<number>>(new Set([0]));
+    const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set());
+    
+    // Timer state
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
     const [timerStarted, setTimerStarted] = useState(false);
     const [quizStartTime, setQuizStartTime] = useState<Date | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Access code state
+    const [accessCodeVerified, setAccessCodeVerified] = useState(false);
+    const [enteredAccessCode, setEnteredAccessCode] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -55,11 +64,11 @@ export default function TakeQuiz() {
                         });
                         setAnswers(restoredAnswers);
                     } else if (quizData.timeLimit && quizData.timeLimit > 0) {
-                        setTimeRemaining(quizData.timeLimit * 60); 
-                        setTimerStarted(true); 
-                        setQuizStartTime(new Date()); 
+                        setTimeRemaining(quizData.timeLimit * 60);
+                        setTimerStarted(true);
+                        setQuizStartTime(new Date());
                     }
-                } else if (quizData.timeLimit && quizData.timeLimit > 0) { 
+                } else if (quizData.timeLimit && quizData.timeLimit > 0) {
                     setTimeRemaining(quizData.timeLimit * 60);
                     setTimerStarted(true);
                     setQuizStartTime(new Date());
@@ -98,6 +107,7 @@ export default function TakeQuiz() {
             handleSubmit(true);
         }
     }, [timeRemaining, submitted]);
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -109,11 +119,16 @@ export default function TakeQuiz() {
         const percentRemaining = (timeRemaining / (quiz.timeLimit * 60)) * 100;
         if (percentRemaining <= 10) return "text-danger";
         if (percentRemaining <= 25) return "text-warning";
-        return "text-primary";
+        return "";
     };
 
     const handleAnswerChange = (questionId: string, answer: any) => {
         setAnswers({ ...answers, [questionId]: answer });
+        // Track answered questions for lock mode
+        const questionIndex = quiz.questions.findIndex((q: any) => q._id === questionId);
+        if (questionIndex !== -1) {
+            setAnsweredQuestions(prev => new Set([...prev, questionIndex]));
+        }
     };
 
     const calculateScore = () => {
@@ -210,6 +225,15 @@ export default function TakeQuiz() {
         return false;
     };
 
+    const shouldShowCorrectAnswers = () => {
+        if (!quiz.showCorrectAnswers || quiz.showCorrectAnswers === "") return false;
+        if (quiz.showCorrectAnswers === "immediately") return true;
+        if (quiz.showCorrectAnswers === "after_due" && quiz.dueDate) {
+            return new Date() > new Date(quiz.dueDate);
+        }
+        return false;
+    };
+
     const canRetake = () => {
         if (!quiz) return false;
         if (!quiz.multipleAttempts) return false;
@@ -220,10 +244,68 @@ export default function TakeQuiz() {
         setAnswers({});
         setSubmitted(false);
         setScore(0);
+        setCurrentQuestionIndex(0);
+        setVisitedQuestions(new Set([0]));
+        setAnsweredQuestions(new Set());
         setTimerStarted(true);
         setQuizStartTime(new Date());
         if (quiz.timeLimit && quiz.timeLimit > 0) {
             setTimeRemaining(quiz.timeLimit * 60);
+        }
+    };
+
+    const navigateToQuestion = (index: number) => {
+        if (quiz.lockQuestionsAfterAnswering) {
+            // Lock mode: Can only navigate to previously answered questions or the next unanswered
+            const canNavigate = 
+                index <= currentQuestionIndex || // Can go back
+                answeredQuestions.has(index) || // Can visit answered questions
+                index === Math.min(...Array.from({length: quiz.questions.length}, (_, i) => i)
+                    .filter(i => !answeredQuestions.has(i))); // Can go to next unanswered
+            
+            if (!canNavigate) {
+                return;
+            }
+        }
+        
+        setCurrentQuestionIndex(index);
+        setVisitedQuestions(prev => new Set([...prev, index]));
+    };
+
+    const goToPrevious = () => {
+        if (currentQuestionIndex > 0) {
+            navigateToQuestion(currentQuestionIndex - 1);
+        }
+    };
+
+    const goToNext = () => {
+        if (currentQuestionIndex < quiz.questions.length - 1) {
+            navigateToQuestion(currentQuestionIndex + 1);
+        }
+    };
+
+    const getQuestionStatus = (index: number) => {
+        const question = quiz.questions[index];
+        if (submitted) {
+            return isCorrect(question) ? 'correct' : 'incorrect';
+        }
+        if (answers[question._id] !== undefined) {
+            return 'answered';
+        }
+        if (visitedQuestions.has(index)) {
+            return 'visited';
+        }
+        return 'unvisited';
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'correct': return 'bg-success text-white';
+            case 'incorrect': return 'bg-danger text-white';
+            case 'answered': return 'bg-primary text-white';
+            case 'visited': return 'bg-warning';
+            case 'unvisited': return 'bg-light border';
+            default: return 'bg-light border';
         }
     };
 
@@ -259,15 +341,430 @@ export default function TakeQuiz() {
         );
     }
 
+    // Check if access code is required but not verified
+    if (quiz.accessCode && !accessCodeVerified && !submitted) {
+        return (
+            <div className="container mt-4">
+                <div className="row justify-content-center">
+                    <div className="col-md-6">
+                        <div className="card">
+                            <div className="card-header">
+                                <h4>Access Code Required</h4>
+                            </div>
+                            <div className="card-body">
+                                <p>This quiz requires an access code to begin.</p>
+                                <div className="mb-3">
+                                    <label htmlFor="accessCode" className="form-label">Enter Access Code:</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        id="accessCode"
+                                        value={enteredAccessCode}
+                                        onChange={(e) => setEnteredAccessCode(e.target.value)}
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                if (enteredAccessCode === quiz.accessCode) {
+                                                    setAccessCodeVerified(true);
+                                                } else {
+                                                    alert("Incorrect access code. Please try again.");
+                                                    setEnteredAccessCode("");
+                                                }
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div className="d-flex justify-content-between">
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() => router.push(`/Courses/${cid}/Quizzes`)}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={() => {
+                                            if (enteredAccessCode === quiz.accessCode) {
+                                                setAccessCodeVerified(true);
+                                            } else {
+                                                alert("Incorrect access code. Please try again.");
+                                                setEnteredAccessCode("");
+                                            }
+                                        }}
+                                    >
+                                        Submit
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const currentQuestion = quiz.questions?.[currentQuestionIndex];
+    const totalPoints = quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) || 0;
+
+    // One question at a time view with timer and navigation
+    if (quiz.oneQuestionAtATime && currentQuestion) {
+        return (
+            <div className="container-fluid mt-4">
+                {/* Timer Bar - Always visible at top */}
+                {timeRemaining !== null && !submitted && (
+                    <div className={`alert ${timeRemaining <= 60 ? 'alert-danger' : timeRemaining <= 300 ? 'alert-warning' : 'alert-info'} mb-3`}>
+                        <div className="d-flex justify-content-between align-items-center">
+                            <h5 className="mb-0">{quiz.title}</h5>
+                            <div className="d-flex align-items-center">
+                                <strong className="me-2">Time Remaining:</strong>
+                                <span className={`fs-4 ${getTimerColor()}`}>
+                                    {formatTime(timeRemaining)}
+                                </span>
+                                {timeRemaining <= 60 && (
+                                    <span className="badge bg-danger ms-2 animate-pulse">Critical!</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="row">
+                    {/* Main Quiz Content */}
+                    <div className="col-md-9">
+                        <div className="card">
+                            <div className="card-header">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <span>Question {currentQuestionIndex + 1} of {quiz.questions.length}</span>
+                                    <span className="badge bg-secondary">{currentQuestion.points} points</span>
+                                </div>
+                            </div>
+                            
+                            <div className="card-body">
+                                {!submitted ? (
+                                    <>
+                                        <h5 className="mb-3">{currentQuestion.title}</h5>
+                                        <div dangerouslySetInnerHTML={{ __html: currentQuestion.question }} className="mb-4" />
+
+                                        {/* Question Content Based on Type */}
+                                        {currentQuestion.type === "multiple-choice" && (
+                                            <div className="mt-3">
+                                                {currentQuestion.choices.map((choice: any, i: number) => (
+                                                    <div key={i} className="form-check mb-2">
+                                                        <input
+                                                            type="radio"
+                                                            className="form-check-input"
+                                                            name={`question-${currentQuestion._id}`}
+                                                            id={`choice-${currentQuestion._id}-${i}`}
+                                                            value={choice.text}
+                                                            checked={answers[currentQuestion._id] === choice.text}
+                                                            onChange={() => handleAnswerChange(currentQuestion._id, choice.text)}
+                                                            disabled={quiz.lockQuestionsAfterAnswering && answeredQuestions.has(currentQuestionIndex) && visitedQuestions.size > currentQuestionIndex + 1}
+                                                        />
+                                                        <label className="form-check-label" htmlFor={`choice-${currentQuestion._id}-${i}`}>
+                                                            {choice.text}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {currentQuestion.type === "true-false" && (
+                                            <div className="mt-3">
+                                                <div className="form-check mb-2">
+                                                    <input
+                                                        type="radio"
+                                                        className="form-check-input"
+                                                        name={`question-${currentQuestion._id}`}
+                                                        id={`true-${currentQuestion._id}`}
+                                                        checked={answers[currentQuestion._id] === true}
+                                                        onChange={() => handleAnswerChange(currentQuestion._id, true)}
+                                                        disabled={quiz.lockQuestionsAfterAnswering && answeredQuestions.has(currentQuestionIndex) && visitedQuestions.size > currentQuestionIndex + 1}
+                                                    />
+                                                    <label className="form-check-label" htmlFor={`true-${currentQuestion._id}`}>
+                                                        True
+                                                    </label>
+                                                </div>
+                                                <div className="form-check">
+                                                    <input
+                                                        type="radio"
+                                                        className="form-check-input"
+                                                        name={`question-${currentQuestion._id}`}
+                                                        id={`false-${currentQuestion._id}`}
+                                                        checked={answers[currentQuestion._id] === false}
+                                                        onChange={() => handleAnswerChange(currentQuestion._id, false)}
+                                                        disabled={quiz.lockQuestionsAfterAnswering && answeredQuestions.has(currentQuestionIndex) && visitedQuestions.size > currentQuestionIndex + 1}
+                                                    />
+                                                    <label className="form-check-label" htmlFor={`false-${currentQuestion._id}`}>
+                                                        False
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {currentQuestion.type === "fill-blank" && (
+                                            <div className="mt-3">
+                                                {(currentQuestion.blanks || [{ possibleAnswers: currentQuestion.possibleAnswers || [] }]).map((blank: any, blankIndex: number) => (
+                                                    <div key={blankIndex} className="mb-3">
+                                                        <label className="form-label">Blank {blankIndex + 1}</label>
+                                                        <input
+                                                            type="text"
+                                                            className="form-control"
+                                                            placeholder={`Answer for blank ${blankIndex + 1}`}
+                                                            value={answers[currentQuestion._id]?.[blankIndex] || ""}
+                                                            onChange={(e) => {
+                                                                const currentAnswers = answers[currentQuestion._id] || [];
+                                                                const newAnswers = [...currentAnswers];
+                                                                newAnswers[blankIndex] = e.target.value;
+                                                                handleAnswerChange(currentQuestion._id, newAnswers);
+                                                            }}
+                                                            disabled={quiz.lockQuestionsAfterAnswering && answeredQuestions.has(currentQuestionIndex) && visitedQuestions.size > currentQuestionIndex + 1}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Navigation Buttons */}
+                                        <hr className="my-4" />
+                                        <div className="d-flex justify-content-between">
+                                            <button
+                                                className="btn btn-outline-secondary"
+                                                onClick={goToPrevious}
+                                                disabled={currentQuestionIndex === 0}
+                                            >
+                                                ← Previous Question
+                                            </button>
+                                            
+                                            {currentQuestionIndex === quiz.questions.length - 1 ? (
+                                                <button
+                                                    className="btn btn-danger"
+                                                    onClick={() => {
+                                                        if (window.confirm("Are you sure you want to submit the quiz?")) {
+                                                            handleSubmit(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    Submit Quiz
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={goToNext}
+                                                >
+                                                    Next Question →
+                                                </button>
+                                            )}
+                                        </div>
+                                    </>
+                                ) : (
+                                    /* Results View for One Question Mode */
+                                    <div>
+                                        <div className="alert alert-info mb-4">
+                                            <h4>Quiz Completed!</h4>
+                                            <p className="mb-1"><strong>Your Score:</strong> {score} / {totalPoints}</p>
+                                            <p className="mb-0"><strong>Percentage:</strong> {Math.round((score / totalPoints) * 100)}%</p>
+                                            <p className="mb-0 mt-2">Attempts used: {attemptCount} / {quiz.multipleAttempts ? quiz.howManyAttempts : 1}</p>
+                                        </div>
+
+                                        {shouldShowCorrectAnswers() && (
+                                            <>
+                                                <h5 className="mb-3">Question {currentQuestionIndex + 1}: {currentQuestion.title}</h5>
+                                                <div dangerouslySetInnerHTML={{ __html: currentQuestion.question }} className="mb-3" />
+                                                
+                                                <div className={`alert ${isCorrect(currentQuestion) ? 'alert-success' : 'alert-danger'}`}>
+                                                    {isCorrect(currentQuestion) ? '✓ Correct' : '✗ Incorrect'}
+                                                </div>
+                                                
+                                                {currentQuestion.type === "multiple-choice" && (
+                                                    <div>
+                                                        <p><strong>Your Answer:</strong> {answers[currentQuestion._id] || "Not answered"}</p>
+                                                        <p><strong>Correct Answer:</strong> {currentQuestion.choices.find((c: any) => c.isCorrect)?.text}</p>
+                                                    </div>
+                                                )}
+                                                
+                                                {currentQuestion.type === "true-false" && (
+                                                    <div>
+                                                        <p><strong>Your Answer:</strong> {answers[currentQuestion._id]?.toString() || "Not answered"}</p>
+                                                        <p><strong>Correct Answer:</strong> {currentQuestion.correctAnswer?.toString()}</p>
+                                                    </div>
+                                                )}
+                                                
+                                                {currentQuestion.type === "fill-blank" && (
+                                                    <div>
+                                                        <p><strong>Your Answers:</strong> {(answers[currentQuestion._id] || []).join(", ") || "Not answered"}</p>
+                                                        <div>
+                                                            <strong>Correct Answers:</strong>
+                                                            {(currentQuestion.blanks || []).map((blank: any, idx: number) => (
+                                                                <p key={idx} className="ms-3">
+                                                                    Blank {idx + 1}: {blank.possibleAnswers.join(" or ")}
+                                                                </p>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <hr className="my-4" />
+                                                <div className="d-flex justify-content-between">
+                                                    <button
+                                                        className="btn btn-outline-secondary"
+                                                        onClick={goToPrevious}
+                                                        disabled={currentQuestionIndex === 0}
+                                                    >
+                                                        ← Previous Question
+                                                    </button>
+                                                    
+                                                    {currentQuestionIndex < quiz.questions.length - 1 && (
+                                                        <button
+                                                            className="btn btn-outline-secondary"
+                                                            onClick={goToNext}
+                                                        >
+                                                            Next Question →
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+
+                                        <div className="mt-4">
+                                            {canRetake() && (
+                                                <button className="btn btn-primary me-2" onClick={handleRetake}>
+                                                    Retake Quiz
+                                                </button>
+                                            )}
+                                            <button
+                                                className="btn btn-secondary"
+                                                onClick={() => router.push(`/Courses/${cid}/Quizzes`)}
+                                            >
+                                                Back to Quizzes
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Side Navigation Panel */}
+                    <div className="col-md-3">
+                        <div className="card position-sticky" style={{ top: "20px" }}>
+                            <div className="card-header">
+                                <h6 className="mb-0">Questions</h6>
+                            </div>
+                            <div className="card-body">
+                                <div className="row g-2 mb-3">
+                                    {quiz.questions.map((question: any, index: number) => {
+                                        const status = getQuestionStatus(index);
+                                        const isCurrent = index === currentQuestionIndex;
+                                        const isAnswered = answeredQuestions.has(index);
+                                        const isLocked = quiz.lockQuestionsAfterAnswering && 
+                                                       !isAnswered && 
+                                                       index > currentQuestionIndex &&
+                                                       answeredQuestions.size > 0 &&
+                                                       index > Math.max(...Array.from(answeredQuestions), -1);
+                                        
+                                        return (
+                                            <div key={question._id} className="col-3">
+                                                <button
+                                                    className={`btn btn-sm w-100 ${getStatusColor(status)} ${isCurrent ? 'border-dark border-2' : ''}`}
+                                                    onClick={() => !isLocked && navigateToQuestion(index)}
+                                                    disabled={isLocked}
+                                                    style={{ 
+                                                        fontSize: '0.9rem',
+                                                        padding: '0.4rem',
+                                                        fontWeight: isCurrent ? 'bold' : 'normal',
+                                                        opacity: isLocked ? 0.5 : 1,
+                                                        position: 'relative'
+                                                    }}
+                                                    title={isLocked ? "Complete previous questions first" : `Question ${index + 1}`}
+                                                >
+                                                    {index + 1}
+                                                    {quiz.lockQuestionsAfterAnswering && isAnswered && visitedQuestions.size > index + 1 && (
+                                                        <span style={{
+                                                            position: 'absolute',
+                                                            top: '2px',
+                                                            right: '2px',
+                                                            fontSize: '0.6rem'
+                                                        }}>🔒</span>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                
+                                {/* Legend */}
+                                <div className="small text-muted">
+                                    <div className="mb-1">⬜ Not Visited</div>
+                                    <div className="mb-1">🟨 Visited</div>
+                                    <div className="mb-1">🔵 Answered</div>
+                                    {quiz.lockQuestionsAfterAnswering && (
+                                        <div className="mb-1">🔒 Locked (answered)</div>
+                                    )}
+                                    {submitted && (
+                                        <>
+                                            <div className="mb-1">🟢 Correct</div>
+                                            <div className="mb-1">🔴 Incorrect</div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Quick Submit Button */}
+                                {!submitted && (
+                                    <div className="mt-3">
+                                        <div className="d-grid">
+                                            <button
+                                                className="btn btn-danger btn-sm"
+                                                onClick={() => {
+                                                    const unansweredCount = quiz.questions.filter((q: any) => 
+                                                        answers[q._id] === undefined
+                                                    ).length;
+                                                    
+                                                    const message = unansweredCount > 0 
+                                                        ? `You have ${unansweredCount} unanswered question(s). Are you sure you want to submit?`
+                                                        : "Are you sure you want to submit the quiz?";
+                                                    
+                                                    if (window.confirm(message)) {
+                                                        handleSubmit(false);
+                                                    }
+                                                }}
+                                            >
+                                                Submit All
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Progress Info */}
+                                <div className="mt-3 text-center">
+                                    <small className="text-muted">
+                                        {Object.keys(answers).length} of {quiz.questions.length} answered
+                                    </small>
+                                    <div className="progress mt-1" style={{ height: '5px' }}>
+                                        <div 
+                                            className="progress-bar" 
+                                            style={{ 
+                                                width: `${(Object.keys(answers).length / quiz.questions.length) * 100}%` 
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Regular view (all questions at once) - keeping your original implementation with timer
     return (
         <div className="container mt-4">
             <h2>{quiz.title}</h2>
             {quiz.description && <p className="text-muted">{quiz.description}</p>}
 
             <div className="mb-3">
-                <strong>Points:</strong> {quiz.questions?.reduce((sum: number, q: any) => sum + (q.points || 0), 0) || 0} | 
+                <strong>Points:</strong> {totalPoints} | 
                 <strong> Questions:</strong> {quiz.questions?.length || 0} |
-                <strong> Time Limit:</strong> {quiz.timeLimit ? `${quiz.timeLimit} minutes` : 'None'} |
+                <strong> Time Limit:</strong> {quiz.timeLimit > 0 ? `${quiz.timeLimit} minutes` : 'None'} |
                 <strong> Attempts:</strong> {attemptCount} / {quiz.multipleAttempts ? quiz.howManyAttempts : 1}
             </div>
 
@@ -292,8 +789,7 @@ export default function TakeQuiz() {
             {quiz.questions?.map((question: any, index: number) => (
                 <div
                     key={question._id}
-                    className={`card mb-3 ${submitted ? (isCorrect(question) ? "border-success" : "border-danger") : ""
-                        }`}
+                    className={`card mb-3 ${submitted ? (isCorrect(question) ? "border-success" : "border-danger") : ""}`}
                 >
                     <div className="card-header d-flex justify-content-between">
                         <span>Question {index + 1}</span>
@@ -302,6 +798,7 @@ export default function TakeQuiz() {
                     <div className="card-body">
                         <p className="card-text">{question.title}</p>
                         <div dangerouslySetInnerHTML={{ __html: question.question }} />
+                        
                         {question.type === "multiple-choice" && (
                             <div className="mt-3">
                                 {question.choices.map((choice: any, i: number) => (
@@ -318,7 +815,7 @@ export default function TakeQuiz() {
                                         />
                                         <label className="form-check-label" htmlFor={`choice-${question._id}-${i}`}>
                                             {choice.text}
-                                            {submitted && quiz.showCorrectAnswers && choice.isCorrect && (
+                                            {submitted && shouldShowCorrectAnswers() && choice.isCorrect && (
                                                 <span className="text-success ms-2">✓ Correct Answer</span>
                                             )}
                                         </label>
@@ -326,6 +823,7 @@ export default function TakeQuiz() {
                                 ))}
                             </div>
                         )}
+                        
                         {question.type === "true-false" && (
                             <div className="mt-3">
                                 <div className="form-check">
@@ -340,7 +838,7 @@ export default function TakeQuiz() {
                                     />
                                     <label className="form-check-label" htmlFor={`true-${question._id}`}>
                                         True
-                                        {submitted && quiz.showCorrectAnswers && question.correctAnswer === true && (
+                                        {submitted && shouldShowCorrectAnswers() && question.correctAnswer === true && (
                                             <span className="text-success ms-2">✓ Correct Answer</span>
                                         )}
                                     </label>
@@ -357,13 +855,14 @@ export default function TakeQuiz() {
                                     />
                                     <label className="form-check-label" htmlFor={`false-${question._id}`}>
                                         False
-                                        {submitted && quiz.showCorrectAnswers && question.correctAnswer === false && (
+                                        {submitted && shouldShowCorrectAnswers() && question.correctAnswer === false && (
                                             <span className="text-success ms-2">✓ Correct Answer</span>
                                         )}
                                     </label>
                                 </div>
                             </div>
                         )}
+                        
                         {question.type === "fill-blank" && (
                             <div className="mt-3">
                                 {(question.blanks || [{ possibleAnswers: question.possibleAnswers || [] }]).map((blank: any, blankIndex: number) => (
@@ -382,7 +881,7 @@ export default function TakeQuiz() {
                                             }}
                                             disabled={submitted}
                                         />
-                                        {submitted && quiz.showCorrectAnswers && (
+                                        {submitted && shouldShowCorrectAnswers() && (
                                             <small className="text-muted">
                                                 Accepted: {blank.possibleAnswers.join(", ")}
                                             </small>
@@ -406,7 +905,7 @@ export default function TakeQuiz() {
             {submitted ? (
                 <div className="mb-4">
                     <div className="alert alert-info">
-                        <h4>Your Score: {score} / {quiz.points}</h4>
+                        <h4>Your Score: {score} / {totalPoints}</h4>
                         <p>Attempts used: {attemptCount} / {quiz.multipleAttempts ? quiz.howManyAttempts : 1}</p>
                     </div>
                     {canRetake() && (
