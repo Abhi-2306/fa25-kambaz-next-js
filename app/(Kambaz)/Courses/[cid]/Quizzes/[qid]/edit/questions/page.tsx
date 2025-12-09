@@ -1,10 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import * as client from "../../../client";
 import { FaPlus, FaTrash, FaArrowUp, FaArrowDown, FaEdit } from "react-icons/fa";
+import "react-quill-new/dist/quill.snow.css";
+
+// Dynamically import ReactQuill to avoid SSR issues
+const ReactQuill = dynamic(() => import("react-quill-new"), { 
+  ssr: false,
+  loading: () => <p>Loading editor...</p>
+});
 
 export default function QuestionsEditor() {
   const { cid, qid } = useParams();
@@ -16,6 +24,26 @@ export default function QuestionsEditor() {
   const [editingQuestions, setEditingQuestions] = useState<Set<string>>(new Set());
   const [originalQuestions, setOriginalQuestions] = useState<Record<string, any>>({});
   const [newQuestionType, setNewQuestionType] = useState<"multiple-choice" | "true-false" | "fill-blank">("multiple-choice");
+
+  // Quill editor modules configuration
+  const quillModules = useMemo(() => ({
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'color': [] }, { 'background': [] }],
+      ['link', 'image'],
+      ['clean']
+    ],
+  }), []);
+
+  const quillFormats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'list',
+    'color', 'background',
+    'link', 'image'
+  ];
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -157,7 +185,6 @@ export default function QuestionsEditor() {
     setEditingQuestions((prev) => new Set([...prev, question._id]));
   };
 
-  // Cancel editing - restore original
   const cancelEditing = (questionId: string) => {
     if (originalQuestions[questionId]) {
       setQuestions(questions.map((q) =>
@@ -212,19 +239,14 @@ export default function QuestionsEditor() {
     }
   };
 
+  // Updated to allow multiple correct answers
   const updateChoice = (questionId: string, choiceIndex: number, updates: any) => {
     setQuestions(
       questions.map((q) => {
         if (q._id === questionId && q.type === "multiple-choice") {
           const newChoices = [...q.choices];
           newChoices[choiceIndex] = { ...newChoices[choiceIndex], ...updates };
-
-          if (updates.isCorrect) {
-            newChoices.forEach((c, i) => {
-              if (i !== choiceIndex) c.isCorrect = false;
-            });
-          }
-
+          // Allow multiple correct answers - no longer deselect others
           return { ...q, choices: newChoices };
         }
         return q;
@@ -253,42 +275,6 @@ export default function QuestionsEditor() {
             newChoices[0].isCorrect = true;
           }
           return { ...q, choices: newChoices };
-        }
-        return q;
-      })
-    );
-  };
-
-  const updatePossibleAnswer = (questionId: string, answerIndex: number, value: string) => {
-    setQuestions(
-      questions.map((q) => {
-        if (q._id === questionId && q.type === "fill-blank") {
-          const newAnswers = [...q.possibleAnswers];
-          newAnswers[answerIndex] = value;
-          return { ...q, possibleAnswers: newAnswers };
-        }
-        return q;
-      })
-    );
-  };
-
-  const addPossibleAnswer = (questionId: string) => {
-    setQuestions(
-      questions.map((q) => {
-        if (q._id === questionId && q.type === "fill-blank") {
-          return { ...q, possibleAnswers: [...q.possibleAnswers, ""] };
-        }
-        return q;
-      })
-    );
-  };
-
-  const deletePossibleAnswer = (questionId: string, answerIndex: number) => {
-    setQuestions(
-      questions.map((q) => {
-        if (q._id === questionId && q.type === "fill-blank") {
-          const newAnswers = q.possibleAnswers.filter((_: any, i: number) => i !== answerIndex);
-          return { ...q, possibleAnswers: newAnswers.length > 0 ? newAnswers : [""] };
         }
         return q;
       })
@@ -337,8 +323,10 @@ export default function QuestionsEditor() {
 
   const getQuestionPreview = (question: any) => {
     if (question.type === "multiple-choice") {
-      const correctChoice = question.choices?.find((c: any) => c.isCorrect);
-      return `Correct answer: ${correctChoice?.text || "Not set"}`;
+      const correctChoices = question.choices?.filter((c: any) => c.isCorrect) || [];
+      if (correctChoices.length === 0) return "Correct answer: Not set";
+      if (correctChoices.length === 1) return `Correct answer: ${correctChoices[0].text}`;
+      return `Correct answers (${correctChoices.length}): ${correctChoices.map((c: any) => c.text).join(", ")}`;
     } else if (question.type === "true-false") {
       return `Correct answer: ${question.correctAnswer ? "True" : "False"}`;
     } else if (question.type === "fill-blank") {
@@ -348,6 +336,13 @@ export default function QuestionsEditor() {
       ).join(" | ");
     }
     return "";
+  };
+
+  const stripHtml = (html: string) => {
+    if (!html) return "";
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
   };
 
   if (loading) {
@@ -375,20 +370,14 @@ export default function QuestionsEditor() {
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Quiz Questions</h2>
         <div>
-          <span className="badge bg-secondary me-2">
-            {questions.length} Questions
-          </span>
-          <span className="badge bg-primary">
-            {calculateTotalPoints()} Total Points
-          </span>
+          <span className="badge bg-secondary me-2">{questions.length} Questions</span>
+          <span className="badge bg-primary">{calculateTotalPoints()} Total Points</span>
         </div>
       </div>
 
       <ul className="nav nav-tabs mb-3">
         <li className="nav-item">
-          <Link className="nav-link" href={`/Courses/${cid}/Quizzes/${qid}/edit`}>
-            Details
-          </Link>
+          <Link className="nav-link" href={`/Courses/${cid}/Quizzes/${qid}/edit`}>Details</Link>
         </li>
         <li className="nav-item">
           <span className="nav-link active">Questions</span>
@@ -417,59 +406,44 @@ export default function QuestionsEditor() {
         </div>
       ) : (
         questions.map((question, index) => (
-          <div key={question._id} className="card mb-3"> 
+          <div key={question._id} className="card mb-3">
             <div className="card-header d-flex justify-content-between align-items-center">
               <div>
                 <strong>Question {index + 1}</strong>
-                <span className="badge bg-secondary ms-2">
-                  {question.type.replace("-", " ").toUpperCase()}
-                </span>
+                <span className="badge bg-secondary ms-2">{question.type.replace("-", " ").toUpperCase()}</span>
                 <span className="badge bg-info ms-1">{question.points} pts</span>
               </div>
               <div className="btn-group btn-group-sm">
-                <button
-                  className="btn btn-outline-secondary"
-                  onClick={() => moveQuestion(index, "up")}
-                  disabled={index === 0}
-                >
+                <button className="btn btn-outline-secondary" onClick={() => moveQuestion(index, "up")} disabled={index === 0}>
                   <FaArrowUp />
                 </button>
-                <button
-                  className="btn btn-outline-secondary"
-                  onClick={() => moveQuestion(index, "down")}
-                  disabled={index === questions.length - 1}
-                >
+                <button className="btn btn-outline-secondary" onClick={() => moveQuestion(index, "down")} disabled={index === questions.length - 1}>
                   <FaArrowDown />
                 </button>
-                <button
-                  className="btn btn-outline-danger"
-                  onClick={() => {
-                    if (confirm("Delete this question?")) {
-                      deleteQuestion(question._id);
-                    }
-                  }}
-                >
+                <button className="btn btn-outline-danger" onClick={() => { if (confirm("Delete this question?")) deleteQuestion(question._id); }}>
                   <FaTrash />
                 </button>
               </div>
             </div>
 
+            {/* Preview Mode */}
             {!editingQuestions.has(question._id) && (
               <div className="card-body">
                 <p className="fw-bold mb-1">{question.title}</p>
                 {question.question && (
-                  <div className="text-muted mb-2" dangerouslySetInnerHTML={{ __html: question.question }} />
+                  <div className="text-muted mb-2">
+                    {stripHtml(question.question).substring(0, 150)}
+                    {stripHtml(question.question).length > 150 && "..."}
+                  </div>
                 )}
                 <p className="text-muted small mb-2">{getQuestionPreview(question)}</p>
-                <button
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={() => startEditing(question)}
-                >
+                <button className="btn btn-sm btn-outline-primary" onClick={() => startEditing(question)}>
                   <FaEdit className="me-1" /> Edit
                 </button>
               </div>
             )}
 
+            {/* Edit Mode */}
             {editingQuestions.has(question._id) && (
               <div className="card-body">
                 <div className="mb-3">
@@ -482,14 +456,17 @@ export default function QuestionsEditor() {
                   />
                 </div>
 
+                {/* WYSIWYG Editor */}
                 <div className="mb-3">
                   <label className="form-label">Question</label>
-                  <textarea
-                    className="form-control"
-                    rows={3}
-                    value={question.question}
-                    onChange={(e) => updateQuestion(question._id, { question: e.target.value })}
-                    placeholder="Enter the question text (HTML supported)"
+                  <ReactQuill
+                    theme="snow"
+                    value={question.question || ""}
+                    onChange={(value) => updateQuestion(question._id, { question: value })}
+                    modules={quillModules}
+                    formats={quillFormats}
+                    placeholder="Enter the question text..."
+                    style={{ backgroundColor: "white" }}
                   />
                 </div>
 
@@ -500,9 +477,7 @@ export default function QuestionsEditor() {
                     className="form-control"
                     style={{ width: "100px" }}
                     value={question.points}
-                    onChange={(e) =>
-                      updateQuestion(question._id, { points: parseInt(e.target.value) || 0 })
-                    }
+                    onChange={(e) => updateQuestion(question._id, { points: parseInt(e.target.value) || 0 })}
                     min="0"
                   />
                 </div>
@@ -510,13 +485,16 @@ export default function QuestionsEditor() {
                 {question.type === "multiple-choice" && (
                   <div>
                     <label className="form-label">Choices</label>
+                    <small className="text-muted d-block mb-2">
+                      Check all correct answers. Points will be divided equally among correct choices.
+                    </small>
                     {question.choices.map((choice: any, i: number) => (
                       <div key={i} className="input-group mb-2">
                         <div className="input-group-text">
                           <input
-                            type="radio"
+                            type="checkbox"
                             checked={choice.isCorrect}
-                            onChange={() => updateChoice(question._id, i, { isCorrect: true })}
+                            onChange={() => updateChoice(question._id, i, { isCorrect: !choice.isCorrect })}
                             title="Mark as correct answer"
                           />
                         </div>
@@ -535,15 +513,25 @@ export default function QuestionsEditor() {
                         </button>
                       </div>
                     ))}
-                    <button
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => addChoice(question._id)}
-                    >
+                    {(() => {
+                      const correctCount = question.choices.filter((c: any) => c.isCorrect).length;
+                      if (correctCount > 1) {
+                        const pointsPerChoice = (question.points / correctCount).toFixed(2);
+                        return (
+                          <div className="alert alert-info py-2 mt-2">
+                            <small>{correctCount} correct answers × {pointsPerChoice} pts each = {question.points} pts total</small>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    <button className="btn btn-sm btn-outline-primary" onClick={() => addChoice(question._id)}>
                       <FaPlus /> Add Choice
                     </button>
                   </div>
                 )}
 
+                {/* True/False */}
                 {question.type === "true-false" && (
                   <div>
                     <label className="form-label">Correct Answer</label>
@@ -572,6 +560,7 @@ export default function QuestionsEditor() {
                   </div>
                 )}
 
+                {/* Fill in the Blank */}
                 {question.type === "fill-blank" && (
                   <div>
                     <label className="form-label">Blanks</label>
@@ -611,19 +600,13 @@ export default function QuestionsEditor() {
                             </button>
                           </div>
                         ))}
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => addBlankAnswer(question._id, blankIndex)}
-                        >
+                        <button className="btn btn-sm btn-outline-primary" onClick={() => addBlankAnswer(question._id, blankIndex)}>
                           <FaPlus /> Add Accepted Answer
                         </button>
                       </div>
                     ))}
 
-                    <button
-                      className="btn btn-outline-success"
-                      onClick={() => addBlank(question._id)}
-                    >
+                    <button className="btn btn-outline-success" onClick={() => addBlank(question._id)}>
                       <FaPlus /> Add Another Blank
                     </button>
                   </div>
@@ -631,18 +614,8 @@ export default function QuestionsEditor() {
 
                 <hr />
                 <div className="d-flex gap-2">
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => cancelEditing(question._id)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => saveQuestion(question._id)}
-                  >
-                    Update Question
-                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => cancelEditing(question._id)}>Cancel</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => saveQuestion(question._id)}>Update Question</button>
                 </div>
               </div>
             )}
@@ -650,27 +623,12 @@ export default function QuestionsEditor() {
         ))
       )}
 
-      <div className="d-flex justify-content-between mt-4">
-        <button className="btn btn-secondary" onClick={handleCancel}>
-          Cancel
-        </button>
+      <div className="d-flex justify-content-between mt-4 mb-5">
+        <button className="btn btn-secondary" onClick={handleCancel}>Cancel</button>
         <div>
-          <Link
-            href={`/Courses/${cid}/Quizzes/${qid}/preview`}
-            className="btn btn-outline-primary me-2"
-          >
-            Preview
-          </Link>
-          <button
-            className="btn btn-success me-2"
-            onClick={handleSaveAndPublish}
-            disabled={saving}
-          >
-            Save & Publish
-          </button>
-          <button className="btn btn-danger" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
-          </button>
+          <Link href={`/Courses/${cid}/Quizzes/${qid}/preview`} className="btn btn-outline-primary me-2">Preview</Link>
+          <button className="btn btn-success me-2" onClick={handleSaveAndPublish} disabled={saving}>Save & Publish</button>
+          <button className="btn btn-danger" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save"}</button>
         </div>
       </div>
     </div>

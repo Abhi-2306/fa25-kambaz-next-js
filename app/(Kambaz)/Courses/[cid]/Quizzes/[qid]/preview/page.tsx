@@ -32,6 +32,19 @@ export default function QuizPreview() {
         setAnswers({ ...answers, [questionId]: answer });
     };
 
+    const handleMultipleChoiceChange = (questionId: string, choiceText: string, isChecked: boolean) => {
+        const currentAnswers = answers[questionId] || [];
+        let newAnswers: string[];
+        
+        if (isChecked) {
+            newAnswers = [...currentAnswers, choiceText];
+        } else {
+            newAnswers = currentAnswers.filter((a: string) => a !== choiceText);
+        }
+        
+        setAnswers({ ...answers, [questionId]: newAnswers });
+    };
+
     const calculateScore = () => {
         if (!quiz) return 0;
         let totalScore = 0;
@@ -40,25 +53,48 @@ export default function QuizPreview() {
             const userAnswer = answers[question._id];
 
             if (question.type === "multiple-choice") {
-                const correctChoice = question.choices.find((c: any) => c.isCorrect);
-                if (correctChoice && userAnswer === correctChoice.text) {
-                    totalScore += question.points;
-                }
+                const correctChoices = question.choices.filter((c: any) => c.isCorrect);
+                const correctCount = correctChoices.length;
+                
+                if (correctCount === 0) return;
+                
+                const pointsPerCorrect = question.points / correctCount;
+                const userAnswers = Array.isArray(userAnswer) ? userAnswer : [];
+                
+                let questionScore = 0;
+                userAnswers.forEach((ans: string) => {
+                    const choice = question.choices.find((c: any) => c.text === ans);
+                    if (choice?.isCorrect) {
+                        questionScore += pointsPerCorrect;
+                    }
+                });
+                
+                totalScore += Math.max(0, questionScore);
+                
             } else if (question.type === "true-false") {
                 if (userAnswer === question.correctAnswer) {
                     totalScore += question.points;
                 }
             } else if (question.type === "fill-blank") {
-                const isCorrect = question.possibleAnswers.some(
-                    (ans: string) => ans.toLowerCase().trim() === userAnswer?.toLowerCase().trim()
-                );
-                if (isCorrect) {
+                const blanks = question.blanks || [{ possibleAnswers: question.possibleAnswers || [] }];
+                const userAnswers = answers[question._id] || [];
+
+                let allCorrect = true;
+                blanks.forEach((blank: any, index: number) => {
+                    const ua = userAnswers[index] || "";
+                    const isCorrect = blank.possibleAnswers.some(
+                        (ans: string) => ans.toLowerCase().trim() === ua.toLowerCase().trim()
+                    );
+                    if (!isCorrect) allCorrect = false;
+                });
+
+                if (allCorrect) {
                     totalScore += question.points;
                 }
             }
         });
 
-        return totalScore;
+        return Math.round(totalScore * 100) / 100;
     };
 
     const handleSubmit = () => {
@@ -67,20 +103,54 @@ export default function QuizPreview() {
         setSubmitted(true);
     };
 
-    const isCorrect = (question: any) => {
+    const getQuestionScore = (question: any) => {
         const userAnswer = answers[question._id];
 
         if (question.type === "multiple-choice") {
-            const correctChoice = question.choices.find((c: any) => c.isCorrect);
-            return correctChoice && userAnswer === correctChoice.text;
+            const correctChoices = question.choices.filter((c: any) => c.isCorrect);
+            const correctCount = correctChoices.length;
+            
+            if (correctCount === 0) return 0;
+            
+            const pointsPerCorrect = question.points / correctCount;
+            const userAnswers = Array.isArray(userAnswer) ? userAnswer : [];
+            
+            let questionScore = 0;
+            userAnswers.forEach((ans: string) => {
+                const choice = question.choices.find((c: any) => c.text === ans);
+                if (choice?.isCorrect) {
+                    questionScore += pointsPerCorrect;
+                }
+            });
+            
+            return Math.max(0, Math.round(questionScore * 100) / 100);
         } else if (question.type === "true-false") {
-            return userAnswer === question.correctAnswer;
+            return userAnswer === question.correctAnswer ? question.points : 0;
         } else if (question.type === "fill-blank") {
-            return question.possibleAnswers.some(
-                (ans: string) => ans.toLowerCase().trim() === userAnswer?.toLowerCase().trim()
-            );
+            const blanks = question.blanks || [{ possibleAnswers: question.possibleAnswers || [] }];
+            const userAnswers = answers[question._id] || [];
+
+            let allCorrect = true;
+            blanks.forEach((blank: any, index: number) => {
+                const ua = userAnswers[index] || "";
+                const isCorrect = blank.possibleAnswers.some(
+                    (ans: string) => ans.toLowerCase().trim() === ua.toLowerCase().trim()
+                );
+                if (!isCorrect) allCorrect = false;
+            });
+
+            return allCorrect ? question.points : 0;
         }
-        return false;
+        return 0;
+    };
+
+    const isCorrect = (question: any) => {
+        return getQuestionScore(question) === question.points;
+    };
+
+    const isPartiallyCorrect = (question: any) => {
+        const score = getQuestionScore(question);
+        return score > 0 && score < question.points;
     };
 
     const resetPreview = () => {
@@ -117,6 +187,11 @@ export default function QuizPreview() {
     const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
     const isFirstQuestion = currentQuestionIndex === 0;
 
+    const correctChoices = currentQuestion?.type === "multiple-choice" 
+        ? currentQuestion.choices.filter((c: any) => c.isCorrect) 
+        : [];
+    const hasMultipleCorrect = correctChoices.length > 1;
+
     return (
         <div className="container mt-4">
             <div className="alert alert-warning">
@@ -134,7 +209,7 @@ export default function QuizPreview() {
 
             <hr />
 
-            <div className="row"> 
+            <div className="row">
                 <div className="col-md-9">
                     {!submitted && currentQuestion && (
                         <div className="card mb-3">
@@ -148,21 +223,37 @@ export default function QuizPreview() {
 
                                 {currentQuestion.type === "multiple-choice" && (
                                     <div className="mt-3">
-                                        {currentQuestion.choices.map((choice: any, i: number) => (
-                                            <div key={i} className="form-check">
-                                                <input
-                                                    type="radio"
-                                                    className="form-check-input"
-                                                    name={`question-${currentQuestion._id}`}
-                                                    id={`choice-${currentQuestion._id}-${i}`}
-                                                    checked={answers[currentQuestion._id] === choice.text}
-                                                    onChange={() => handleAnswerChange(currentQuestion._id, choice.text)}
-                                                />
-                                                <label className="form-check-label" htmlFor={`choice-${currentQuestion._id}-${i}`}>
-                                                    {choice.text}
-                                                </label>
-                                            </div>
-                                        ))}
+                                        {hasMultipleCorrect && (
+                                            <small className="text-muted d-block mb-2">
+                                                Select all that apply
+                                            </small>
+                                        )}
+                                        {currentQuestion.choices.map((choice: any, i: number) => {
+                                            const userAnswers = Array.isArray(answers[currentQuestion._id]) ? answers[currentQuestion._id] : [];
+                                            const isSelected = userAnswers.includes(choice.text);
+                                            
+                                            return (
+                                                <div key={i} className="form-check">
+                                                    <input
+                                                        type={hasMultipleCorrect ? "checkbox" : "radio"}
+                                                        className="form-check-input"
+                                                        name={`question-${currentQuestion._id}`}
+                                                        id={`choice-${currentQuestion._id}-${i}`}
+                                                        checked={isSelected}
+                                                        onChange={(e) => {
+                                                            if (hasMultipleCorrect) {
+                                                                handleMultipleChoiceChange(currentQuestion._id, choice.text, e.target.checked);
+                                                            } else {
+                                                                handleAnswerChange(currentQuestion._id, [choice.text]);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <label className="form-check-label" htmlFor={`choice-${currentQuestion._id}-${i}`}>
+                                                        {choice.text}
+                                                    </label>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
 
@@ -213,13 +304,7 @@ export default function QuizPreview() {
                                                         newAnswers[blankIndex] = e.target.value;
                                                         handleAnswerChange(currentQuestion._id, newAnswers);
                                                     }}
-                                                    disabled={submitted}
                                                 />
-                                                {submitted && quiz.showCorrectAnswers && (
-                                                    <small className="text-muted">
-                                                        Accepted: {blank.possibleAnswers.join(", ")}
-                                                    </small>
-                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -256,23 +341,33 @@ export default function QuizPreview() {
                                 <h4>Score: {score} / {totalPoints}</h4>
                             </div>
 
-                            {quiz.questions.map((question: any, index: number) => (
-                                <div
-                                    key={question._id}
-                                    className={`card mb-3 ${isCorrect(question) ? "border-success" : "border-danger"}`}
-                                >
-                                    <div className="card-header d-flex justify-content-between">
-                                        <span>Question {index + 1}</span>
-                                        <span>{question.points} pts</span>
-                                    </div>
-                                    <div className="card-body">
-                                        <p className="card-text">{question.title}</p>
-                                        <div className={`mt-2 ${isCorrect(question) ? "text-success" : "text-danger"}`}>
-                                            {isCorrect(question) ? "✓ Correct" : "✗ Incorrect"}
+                            {quiz.questions.map((question: any, index: number) => {
+                                const questionScore = getQuestionScore(question);
+                                const fullyCorrect = isCorrect(question);
+                                const partiallyCorrect = isPartiallyCorrect(question);
+                                
+                                let borderClass = "";
+                                if (fullyCorrect) borderClass = "border-success";
+                                else if (partiallyCorrect) borderClass = "border-warning";
+                                else borderClass = "border-danger";
+
+                                return (
+                                    <div key={question._id} className={`card mb-3 ${borderClass}`}>
+                                        <div className="card-header d-flex justify-content-between">
+                                            <span>Question {index + 1}</span>
+                                            <span>{questionScore}/{question.points} pts</span>
+                                        </div>
+                                        <div className="card-body">
+                                            <p className="card-text">{question.title}</p>
+                                            <div className={`mt-2 ${fullyCorrect ? "text-success" : partiallyCorrect ? "text-warning" : "text-danger"}`}>
+                                                {fullyCorrect && "✓ Correct"}
+                                                {partiallyCorrect && `◐ Partially Correct`}
+                                                {!fullyCorrect && !partiallyCorrect && "✗ Incorrect"}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
 
                             <button className="btn btn-secondary me-2" onClick={resetPreview}>
                                 Try Again
@@ -290,22 +385,40 @@ export default function QuizPreview() {
                             <strong>Questions</strong>
                         </div>
                         <ul className="list-group list-group-flush">
-                            {quiz.questions.map((q: any, index: number) => (
-                                <li
-                                    key={q._id}
-                                    className={`list-group-item d-flex justify-content-between align-items-center 
-                    ${currentQuestionIndex === index && !submitted ? "active" : ""} 
-                    ${submitted ? (isCorrect(q) ? "list-group-item-success" : "list-group-item-danger") : ""}`}
-                                    style={{ cursor: submitted ? "default" : "pointer" }}
-                                    onClick={() => !submitted && setCurrentQuestionIndex(index)}
-                                >
-                                    <span>Question {index + 1}</span>
-                                    {answers[q._id] !== undefined && !submitted && (
-                                        <span className="badge bg-secondary">Answered</span>
-                                    )}
-                                    {submitted && <span>{isCorrect(q) ? "✓" : "✗"}</span>}
-                                </li>
-                            ))}
+                            {quiz.questions.map((q: any, index: number) => {
+                                const fullyCorrect = submitted && isCorrect(q);
+                                const partiallyCorrect = submitted && isPartiallyCorrect(q);
+                                
+                                let itemClass = "";
+                                if (submitted) {
+                                    if (fullyCorrect) itemClass = "list-group-item-success";
+                                    else if (partiallyCorrect) itemClass = "list-group-item-warning";
+                                    else itemClass = "list-group-item-danger";
+                                }
+
+                                return (
+                                    <li
+                                        key={q._id}
+                                        className={`list-group-item d-flex justify-content-between align-items-center 
+                                            ${currentQuestionIndex === index && !submitted ? "active" : ""} 
+                                            ${itemClass}`}
+                                        style={{ cursor: submitted ? "default" : "pointer" }}
+                                        onClick={() => !submitted && setCurrentQuestionIndex(index)}
+                                    >
+                                        <span>Question {index + 1}</span>
+                                        {answers[q._id] !== undefined && !submitted && (
+                                            <span className="badge bg-secondary">Answered</span>
+                                        )}
+                                        {submitted && (
+                                            <span>
+                                                {fullyCorrect && "✓"}
+                                                {partiallyCorrect && "◐"}
+                                                {!fullyCorrect && !partiallyCorrect && "✗"}
+                                            </span>
+                                        )}
+                                    </li>
+                                );
+                            })}
                         </ul>
                     </div>
                 </div>
