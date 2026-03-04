@@ -9,6 +9,7 @@ import { useState } from "react";
 import { FormControl, Button } from "react-bootstrap";
 
 export default function Signin() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [credentials, setCredentials] = useState<any>({});
     const dispatch = useDispatch();
     const router = useRouter();
@@ -102,7 +103,7 @@ export default function Signin() {
 
                     <div className="d-grid gap-3">
                         {testAccounts.map((account) => (
-                            <div 
+                            <div
                                 key={account.username}
                                 className="p-3 border rounded"
                                 style={{ cursor: 'pointer' }}
@@ -128,7 +129,7 @@ export default function Signin() {
                                             </span>
                                         </div>
                                     </div>
-                                    <Button 
+                                    <Button
                                         variant={`outline-${account.color}`}
                                         size="sm"
                                         onClick={(e) => {
@@ -144,7 +145,7 @@ export default function Signin() {
                     </div>
 
                     <div className="alert alert-info mt-4 mb-0 small">
-                        <strong>💡 Tip:</strong> Try the Faculty account to create courses and quizzes, 
+                        <strong>💡 Tip:</strong> Try the Faculty account to create courses and quizzes,
                         then switch to Student to experience the learning side!
                     </div>
                 </div>
